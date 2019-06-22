@@ -108,14 +108,12 @@ export LIBPATHS	:=	$(foreach dir,$(LIBDIRS),-L$(dir)/lib)
 
 export PICS 	:=  $(wildcard $(GRAPHICS)/*.png)
 
-.PHONY: $(BUILD) clean
+export CONVERTED := $(wildcard $(SOURCES)/tiles*)
+
+.PHONY: $(BUILD) clean grit
  
 #---------------------------------------------------------------------------------
 $(BUILD):
-	make clean
-	@grit $(PICS) -gB8 -mRtf -pu16 -ftc
-	@mv *.c $(SOURCES)
-	@mv *.h $(SOURCES)
 	@[ -d $@ ] || mkdir -p $@
 	@$(MAKE) --no-print-directory -C $(BUILD) -f $(CURDIR)/Makefile
 
@@ -123,7 +121,13 @@ $(BUILD):
 clean:
 	@echo clean ...
 	@rm -fr $(BUILD) $(TARGET).elf $(TARGET).gba 
+	@rm -rf $(CONVERTED)
 
+grit:
+	@echo converting graphics ...
+	@grit $(PICS) -gB8 -mRtf -pu16 -ftc
+	@mv *.c $(SOURCES)
+	@mv *.h $(SOURCES)
 
 #---------------------------------------------------------------------------------
 else

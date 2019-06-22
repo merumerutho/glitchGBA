@@ -6,8 +6,14 @@ It was created with live video performing in mind so it's highly interactive and
 
 Despite the real GBA hardware natively is not capable of video out, you can run this in a common emulator (it's easy and free, GBA emulators also runs on outdated hardware!) for PC, SBCs like the Raspberry Pi, the PSP, the RS-97 or similar, or even a Gamecube with the Gameboy Player, all of which can display on a real screen or projector.
 
-## Video Example
-[Watch on Youtube](https://www.youtube.com/watch?v=6Cut0q85Z6Q)
+## Examples
+
+![1](https://www.meru.cloud/assets/glitchGBA/1.PNG) ![2](https://www.meru.cloud/assets/glitchGBA/2.PNG) 
+
+![3](https://www.meru.cloud/assets/glitchGBA/3.PNG) ![4](https://www.meru.cloud/assets/glitchGBA/4.PNG)
+
+[Demo1](https://www.youtube.com/watch?v=6Cut0q85Z6Q)
+[Demo2](https://youtu.be/0SPNZVn2vGY)
 
 ## Alpha release:
 [Download here](https://www.meru.cloud/assets/glitchGBA/glitchGBA-alpha-0.1.gba)

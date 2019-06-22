@@ -50,7 +50,9 @@ Use for **L** and **R** keys is still reserved for future implementation of tile
 You can probably exceed this size vertically but be sure to keep the horizontal size 256 pixels. It's not vital but it's probably more organized. Also notice that the size of the tileset should be in multiples of 8 since that's the minimum size of a tile block.
 - Once you're ready, go back to the main folder and open a cmd window (you can do so by right clicking on the folder and clicking "Open command window here".
 In Windows 10 you might have the powershell option. Don't know if it works with the next command but there should be a way to get the usual cmd menu item. Google it.
-- Type ```make``` and press enter. You should have successfully compiled your custom ROM!
+- Type ```make grit``` and press enter to convert the graphics. You MUST do this before compiling the ROM.
+- Type ```make``` to compile the ROM.
+- Type ```make clean``` to clear the project before building again.
 
 ## To Do
 - Multiple tileset support with in-game switching.

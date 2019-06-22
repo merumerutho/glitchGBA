@@ -7,7 +7,7 @@ It was created with live video performing in mind so it's highly interactive and
 Despite the real GBA hardware natively is not capable of video out, you can run this in a common emulator (it's easy and free, GBA emulators also runs on outdated hardware!) for PC, SBCs like the Raspberry Pi, the PSP, the RS-97 or similar, or even a Gamecube with the Gameboy Player, all of which can display on a real screen or projector.
 
 ## Alpha release:
-[Download here](www.meru.cloud/assets/glitchGBA/glitchGBA-alpha-0.1.gba)
+[Download here](https://www.meru.cloud/assets/glitchGBA/glitchGBA-alpha-0.1.gba)
 
 ## How does it work?
 It just copies some tilesets into the video memory, then proceeds to display it (and move it) layering the 4 GBA backgrounds as a single non-glitched layer and three glitched layers. It can alter the palette as well.

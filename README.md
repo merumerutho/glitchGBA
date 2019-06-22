@@ -15,7 +15,7 @@ Despite the real GBA hardware natively is not capable of video out, you can run 
 [Demo1](https://www.youtube.com/watch?v=6Cut0q85Z6Q)
 [Demo2](https://youtu.be/0SPNZVn2vGY)
 
-## Alpha release:
+## Example release:
 [Download here](https://www.meru.cloud/assets/glitchGBA/glitchGBA-alpha-0.1.gba)
 
 ## How does it work?
@@ -42,13 +42,22 @@ Selecting console mode allows for the correct experience on console.
 
 Use for **L** and **R** keys is still reserved for future implementation of tileset switching.
 
-## Compile instructions
-You need the libgba library and the other tools included in [devKitPro](https://github.com/devkitPro/installer/releases) to compile.
+## How to compile the ROM with your own graphics:
+### Windows:
+- Install [devKitPro](https://github.com/devkitPro/installer/releases). Select the GBA development.
+- Clone the git or download the zip and extract it, then open the folder.
+- Prepare the tileset in a 256x256 sized file called tile1.png and put it in the graphics folder.
+You can probably exceed this size vertically but be sure to keep the horizontal size 256 pixels. It's not vital but it's probably more organized. Also notice that the size of the tileset should be in multiples of 8 since that's the minimum size of a tile block.
+- Once you're ready, go back to the main folder and open a cmd window (you can do so by right clicking on the folder and clicking "Open command window here".
+In Windows 10 you might have the powershell option. Don't know if it works with the next command but there should be a way to get the usual cmd menu item. Google it.
+- Type ```make``` and press enter. You should have successfully compiled your custom ROM!
 
-Use [Usenti](https://www.coranac.com/projects/usenti/) to prepare the tileset.
-Load your graphics into usenti, export creating also a map calling the created files tiles1.c/h.
-Then copy into the source folder. Compile, and it's done.
+## To Do
+- Multiple tileset support with in-game switching.
+- Easier compiling chain to let non-programmers access this project comfortably. :heavy_check_mark:
 
-## Todo
-- Tileset switching
-- Easier compiling chain to let non-programmers access this project comfortably.
+## Credits
+- [TurboGamma](https://www.facebook.com/turbogamma/) for the included graphics.
+- [Coranac](http://www.coranac.com/) for [grit](https://www.coranac.com/projects/grit/) and the [tonc](http://www.coranac.com/tonc/text/toc.htm) which taught me many things.
+- the DevKitPro team for libgba.
+

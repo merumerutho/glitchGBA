@@ -6,7 +6,7 @@ It was created with live video performing in mind so it's highly interactive and
 
 Despite the real GBA hardware natively is not capable of video out, you can run this in a common emulator (it's easy and free, GBA emulators also runs on outdated hardware!) for PC, SBCs like the Raspberry Pi, the PSP, the RS-97 or similar, or even a Gamecube with the Gameboy Player, all of which can display on a real screen or projector.
 
-# Video Example
+## Video Example
 [Watch on Youtube](https://www.youtube.com/watch?v=6Cut0q85Z6Q)
 
 ## Alpha release:

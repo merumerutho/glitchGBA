@@ -108,7 +108,7 @@ export LIBPATHS	:=	$(foreach dir,$(LIBDIRS),-L$(dir)/lib)
 
 export PICS 	:=  $(wildcard $(GRAPHICS)/*.png)
 
-export CONVERTED := $(wildcard $(SOURCES)/tiles*)
+export CONVERTED := $(wildcard $(SOURCES)/tile*)
 
 .PHONY: $(BUILD) clean grit
  
@@ -121,13 +121,7 @@ $(BUILD):
 clean:
 	@echo clean ...
 	@rm -fr $(BUILD) $(TARGET).elf $(TARGET).gba 
-	@rm -rf $(CONVERTED)
-
-grit:
-	@echo converting graphics ...
-	@grit $(PICS) -gB8 -mRtf -pu16 -ftc
-	@mv *.c $(SOURCES)
-	@mv *.h $(SOURCES)
+	@rm -rf $(CONVERTED) $(SOURCES)/graphics.h
 
 #---------------------------------------------------------------------------------
 else
@@ -141,13 +135,6 @@ $(OUTPUT).gba	:	$(OUTPUT).elf
 $(OUTPUT).elf	:	$(OFILES)
 
 $(OFILES_SOURCES) : $(HFILES)
-
-#---------------------------------------------------------------------------------
-# The bin2o rule should be copied and modified
-# for each extension used in the data directories
-#---------------------------------------------------------------------------------
-
-
 
 #---------------------------------------------------------------------------------
 # This rule links in binary data with the .bin extension

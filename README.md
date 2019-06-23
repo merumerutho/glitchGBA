@@ -55,6 +55,14 @@ You can probably exceed this size vertically but be sure to keep the horizontal 
 You may theoretically put a lot of tiles but at some point the memory of the GBA will be full and some issues will arise in the compiler. At least a dozen should fit, however
 - Once you're ready, go back to the main folder and launch **compile.exe**. The rom will compile.
 
+### Linux:
+I still haven't provided an easy way to compile on Linux but it should be kind of the same way:
+- Install devKitPro
+- Prepare the tilesets and use grit or gfx2gba to convert them
+- Assemble a graphics.h file (this is the part which should be automated via some script)
+- Put it into the source folder along with the others .h files
+- Launch make in the folder
+
 ## Credits
 - [TurboGamma](https://www.facebook.com/turbogamma/) for one of the included graphics.
 - [Coranac](http://www.coranac.com/) for [grit](https://www.coranac.com/projects/grit/) and the [tonc](http://www.coranac.com/tonc/text/toc.htm) which taught me many things.

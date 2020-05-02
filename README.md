@@ -53,7 +53,6 @@ You may theoretically put a lot of tiles but at some point the memory of the GBA
 - Once you're ready, go back to the main folder and launch **compile.exe**. The rom will compile.
 
 ## Credits
-- [TurboGamma](https://www.facebook.com/turbogamma/) for one of the included graphics.
 - [Coranac](http://www.coranac.com/) for [grit](https://www.coranac.com/projects/grit/) and the [tonc](http://www.coranac.com/tonc/text/toc.htm) which taught me many things.
 - the DevKitPro team for libgba.
 

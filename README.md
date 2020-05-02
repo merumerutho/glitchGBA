@@ -36,15 +36,15 @@ Select a layer and alter it, have fun!
 - **B+Start**: Enable/Disable current layer
 - **B+Select**: Enable/Disable console mode
 - **Select+Start**: Chaos mode (randomizes heavily)
-- **L**: Switch to left tileset
-- **R**: Switch to right tileset
-- **R+Right**: Enable/Disable movie mode (laggish but does its work)
+- **L**: Switch to previous tileset (reglitch)
+- **R**: Switch to next tileset (reglitch)
+- **L+A**: Switch to previous tileset (don't reglitch)
+- **R+A**: Switch to next tileset (don't reglitch)
+- **R+Right**: Enable/Disable autoswapper (laggish but does its work)
 
 Notice that console mode is a mode for running on real hardware (and some emulators, like the one on RS-97).
 There is a mismatch in the way Visual Boy Advance and the real hardware interpret the movement of the tilesets.
 Selecting console mode allows for the correct experience on console.
-
-Use for **L** and **R** keys is still reserved for future implementation of tileset switching.
 
 ## How to compile the ROM with your own graphics:
 ### Windows:
@@ -54,14 +54,6 @@ Use for **L** and **R** keys is still reserved for future implementation of tile
 You can probably exceed this size vertically but be sure to keep the horizontal size 256 pixels. It's not vital but it's probably more organized. Also notice that the size of the tileset should be in multiples of 8 since that's the minimum size of a tile block.
 You may theoretically put a lot of tiles but at some point the memory of the GBA will be full and some issues will arise in the compiler. At least a dozen should fit, however
 - Once you're ready, go back to the main folder and launch **compile.exe**. The rom will compile.
-
-### Linux:
-I still haven't provided an easy way to compile on Linux but it should be kind of the same way:
-- Install devKitPro
-- Prepare the tilesets and use grit or gfx2gba to convert them
-- Assemble a graphics.h file (this is the part which should be automated via some script)
-- Put it into the source folder along with the others .h files
-- Launch make in the folder
 
 ## Credits
 - [TurboGamma](https://www.facebook.com/turbogamma/) for one of the included graphics.

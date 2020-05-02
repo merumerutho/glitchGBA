@@ -11,6 +11,8 @@
 #define MAP_ADDRESS2 30
 #define MAP_ADDRESS3 31
 
+#define MOVIEFPS 1
+
 #include "graphics.h"
 
 int main() {
@@ -172,16 +174,16 @@ int main() {
 		}
 		
 		// Movie mode
-		if(movie && frameCounter==2){
+		if(movie && frameCounter== MOVIEFPS){
 			frameCounter = 0;
 			currentTiles++;
 			if(currentTiles==NTILES)
 				currentTiles = 0;
 			if(!paletteChange)
 				memcpy(BG_PALETTE, palsPointer[currentTiles], PalsLen[currentTiles]);
-			memcpy(&MAP[0][0], tilesPointer[currentTiles], TilesLen[currentTiles]);
-			memcpy(&MAP[MAP_ADDRESS0][0], mapsPointer[currentTiles], MapsLen[currentTiles]);
-		} else if (frameCounter == 2){
+				memcpy(&MAP[0][0], tilesPointer[currentTiles], TilesLen[currentTiles]);
+				memcpy(&MAP[MAP_ADDRESS0][0], mapsPointer[currentTiles], MapsLen[currentTiles]);
+		} else if (frameCounter == MOVIEFPS){
 			frameCounter = 0;
 		}
 		
@@ -267,6 +269,31 @@ int main() {
 				interrupt=TRUE;
 			}
 		// Switch to right tiles & palette
+		} else if (keys_pressed == (KEY_R + KEY_A)){
+			currentTiles++;
+			if (currentTiles==NTILES)
+				currentTiles = 0;
+			memcpy(BG_PALETTE, palsPointer[currentTiles], PalsLen[currentTiles]);
+			//memcpy(&MAP[0][0], tilesPointer[currentTiles], TilesLen[currentTiles]);
+			//memcpy(&MAP[MAP_ADDRESS0][0], mapsPointer[currentTiles], MapsLen[currentTiles]);
+			//memcpy(&MAP[MAP_ADDRESS1][(rand()%0xFF)], tilesPointer[0]+(rand()%(TilesLen[0]-MapsLen[0])), 0x10);
+			//memcpy(&MAP[MAP_ADDRESS2][(rand()%0xFF)], tilesPointer[0]+(rand()%(TilesLen[0]-MapsLen[0])), 0x10);
+			//memcpy(&MAP[MAP_ADDRESS3][(rand()%0xFF)], tilesPointer[0]+(rand()%(TilesLen[0]-MapsLen[0])), 0x10);
+		// Switch to left tiles & palette
+		} else if (keys_pressed == (KEY_L + KEY_A)){
+			currentTiles--;
+			if (currentTiles==-1)
+				currentTiles = NTILES-1;
+			memcpy(BG_PALETTE, palsPointer[currentTiles], PalsLen[currentTiles]);
+			//memcpy(&MAP[0][0], tilesPointer[currentTiles], TilesLen[currentTiles]);
+			//memcpy(&MAP[MAP_ADDRESS0][0], mapsPointer[currentTiles], MapsLen[currentTiles]);
+			//memcpy(&MAP[MAP_ADDRESS1][(rand()%0xFF)], tilesPointer[0]+(rand()%(TilesLen[0]-MapsLen[0])), 0x10);
+			//memcpy(&MAP[MAP_ADDRESS2][(rand()%0xFF)], tilesPointer[0]+(rand()%(TilesLen[0]-MapsLen[0])), 0x10);
+			//memcpy(&MAP[MAP_ADDRESS3][(rand()%0xFF)], tilesPointer[0]+(rand()%(TilesLen[0]-MapsLen[0])), 0x10);
+		// Enable / Disable movie mode
+		} else if (keys_pressed == (KEY_R + KEY_RIGHT)){
+			movie=!movie;
+		// Switch to right tiles only 
 		} else if (keys_pressed == (KEY_R)){
 			currentTiles++;
 			if (currentTiles==NTILES)
@@ -277,7 +304,7 @@ int main() {
 			memcpy(&MAP[MAP_ADDRESS1][(rand()%0xFF)], tilesPointer[0]+(rand()%(TilesLen[0]-MapsLen[0])), 0x10);
 			memcpy(&MAP[MAP_ADDRESS2][(rand()%0xFF)], tilesPointer[0]+(rand()%(TilesLen[0]-MapsLen[0])), 0x10);
 			memcpy(&MAP[MAP_ADDRESS3][(rand()%0xFF)], tilesPointer[0]+(rand()%(TilesLen[0]-MapsLen[0])), 0x10);
-		// Switch to left tiles & palette
+		// Switch to left tiles only
 		} else if (keys_pressed == (KEY_L)){
 			currentTiles--;
 			if (currentTiles==-1)
@@ -288,9 +315,28 @@ int main() {
 			memcpy(&MAP[MAP_ADDRESS1][(rand()%0xFF)], tilesPointer[0]+(rand()%(TilesLen[0]-MapsLen[0])), 0x10);
 			memcpy(&MAP[MAP_ADDRESS2][(rand()%0xFF)], tilesPointer[0]+(rand()%(TilesLen[0]-MapsLen[0])), 0x10);
 			memcpy(&MAP[MAP_ADDRESS3][(rand()%0xFF)], tilesPointer[0]+(rand()%(TilesLen[0]-MapsLen[0])), 0x10);
-		// Enable / Disable movie mode
-		} else if (keys_pressed == (KEY_R + KEY_RIGHT)){
-			movie=!movie;
+		// RESET TO START
+		} else if (keys_pressed == (KEY_A + KEY_B + KEY_START + KEY_SELECT)){
+			currentTiles = 0;
+			memcpy(BG_PALETTE, palsPointer[currentTiles], PalsLen[currentTiles]);
+			memcpy(&MAP[0][0], tilesPointer[currentTiles], TilesLen[currentTiles]);
+			memcpy(&MAP[MAP_ADDRESS0][0], mapsPointer[currentTiles], MapsLen[currentTiles]);
+			memcpy(&MAP[MAP_ADDRESS1][(rand()%0xFF)], tilesPointer[0]+(rand()%(TilesLen[0]-MapsLen[0])), 0x10);
+			memcpy(&MAP[MAP_ADDRESS2][(rand()%0xFF)], tilesPointer[0]+(rand()%(TilesLen[0]-MapsLen[0])), 0x10);
+			memcpy(&MAP[MAP_ADDRESS3][(rand()%0xFF)], tilesPointer[0]+(rand()%(TilesLen[0]-MapsLen[0])), 0x10);
+			for (i=0;i<4;i++){
+				speedX[i] = 0;
+				speedY[i] = 0;
+			}
+			chaos = FALSE;
+			bgremap = FALSE;
+			remap = FALSE;
+			parallax = FALSE;
+			console = FALSE;
+			movie = FALSE;
+			frameCounter=0;
+			paused = FALSE;
+			interrupt = TRUE;
 		}
 	} while( 1 );
 }

@@ -15,9 +15,6 @@ Despite the real GBA hardware natively is not capable of video out, you can run 
 [Demo1](https://www.youtube.com/watch?v=6Cut0q85Z6Q)
 [Demo2](https://youtu.be/0SPNZVn2vGY)
 
-## Example release:
-[Download here](https://www.meru.cloud/assets/glitchGBA/glitchGBA.gba)
-
 ## How does it work?
 It just copies some tilesets into the video memory, then proceeds to display it (and move it) layering the 4 GBA backgrounds as a single non-glitched layer and three glitched layers. It can alter the palette as well.
 Select a layer and alter it, have fun!

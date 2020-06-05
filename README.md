@@ -8,9 +8,9 @@ Despite the real GBA hardware natively is not capable of video out, you can run 
 
 ## Examples
 
-![1](https://www.meru.cloud/assets/glitchGBA/1.PNG) ![2](https://www.meru.cloud/assets/glitchGBA/2.PNG) 
+![1](http://www.meru.cloud/assets/06-07-2019/1.png) ![2](http://www.meru.cloud/assets/06-07-2019/2.png) 
 
-![3](https://www.meru.cloud/assets/glitchGBA/3.PNG) ![4](https://www.meru.cloud/assets/glitchGBA/4.PNG)
+![3](http://www.meru.cloud/assets/06-07-2019/3.png)
 
 [Demo1](https://www.youtube.com/watch?v=6Cut0q85Z6Q)
 [Demo2](https://youtu.be/0SPNZVn2vGY)

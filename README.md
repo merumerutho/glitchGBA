@@ -9,7 +9,6 @@ Despite the real GBA hardware natively is not capable of video out, you can run 
 ## Examples
 
 ![1](http://www.meru.cloud/assets/06-07-2019/1.png) ![2](http://www.meru.cloud/assets/06-07-2019/2.png) 
-
 ![3](http://www.meru.cloud/assets/06-07-2019/3.png)
 
 [Demo1](https://www.youtube.com/watch?v=6Cut0q85Z6Q)

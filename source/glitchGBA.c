@@ -13,12 +13,14 @@
 
 #define MOVIEFPS 1
 
+#define DEFAULT_CONSOLE TRUE
+
 #include "graphics.h"
 
 int main() {
 	
-	// IO variable
-	int keys_pressed;
+	// IO variables
+	int keys_held, keys_released;
 	// Frame counter
 	int kX[4] = {0, 1, 2, 3};
 	int kY[4] = {0, 1, 2, 3};
@@ -27,7 +29,6 @@ int main() {
 	int speedY[4] = {0, 1, 2, 3};
 	// your friendly dummy i
 	int i;
-	
 	// Buffer for palette memory address
 	short unsigned int * paletteAddress;
 	// current Palette
@@ -44,12 +45,12 @@ int main() {
 	bool remap = FALSE;
 	// remap background? (slows down)
 	bool bgremap = FALSE;
-	// are we on a console?
-	bool console = FALSE;
 	// chaos randomizer
 	bool chaos = FALSE;
 	// movie mode
 	bool movie = FALSE;
+	// are we on a console?
+	bool console = DEFAULT_CONSOLE;
 	// Frame counter
 	int frameCounter=0;
 	// increaseRate value (depends on hrw/emu)
@@ -59,6 +60,10 @@ int main() {
 	char randomChange;
 	// backgroundLevel to swap
 	int bglevel=0;
+	// Set current keys pressed to 0 (none)
+	keys_held = 0;
+	// Multikey control 
+	bool multikey = FALSE;
 	
 	// Enable interrupt VBLANK
 	irqInit();
@@ -110,7 +115,7 @@ int main() {
 				kY[i]+=speedY[i];
 			}
 				
-			// Emulators have a weird behaviour compared to real hardware,
+			// VBA has a weird behaviour compared to gba and other emus,
 			// this is just a quick fix.
 			if (console){
 				for(i=0;i<4;i++){
@@ -181,8 +186,8 @@ int main() {
 				currentTiles = 0;
 			if(!paletteChange)
 				memcpy(BG_PALETTE, palsPointer[currentTiles], PalsLen[currentTiles]);
-				memcpy(&MAP[0][0], tilesPointer[currentTiles], TilesLen[currentTiles]);
-				memcpy(&MAP[MAP_ADDRESS0][0], mapsPointer[currentTiles], MapsLen[currentTiles]);
+			memcpy(&MAP[0][0], tilesPointer[currentTiles], TilesLen[currentTiles]);
+			memcpy(&MAP[MAP_ADDRESS0][0], mapsPointer[currentTiles], MapsLen[currentTiles]);
 		} else if (frameCounter == MOVIEFPS){
 			frameCounter = 0;
 		}
@@ -196,61 +201,98 @@ int main() {
 			memset(BG_PALETTE, 0x0000, 2);
 		}
 		
-		// Check keys
+		// Check current key status
 		scanKeys();
-		keys_pressed = keysDown();
+		// Get Pressed Keys
+		keys_held = keysHeld();
+		// Get Released Keys
+		keys_released = keysUp();
 		
-		// Pause / resume
-		if ( keys_pressed == (KEY_A)) {
-			paused = !paused;
-		// Turn interrupt on/off
-		} else if (keys_pressed == (KEY_B)){
-			interrupt=!interrupt;
-		// Decrease speed X
-		} else if ( keys_pressed == KEY_LEFT) {
-			speedX[bglevel]-=1;
-		// Increase speed X
-		} else if (keys_pressed == KEY_RIGHT) {
-			speedX[bglevel]++;
-		// Increase speed Y
-		} else if (keys_pressed == KEY_UP) {
-			speedY[bglevel]++;
-		// Decrease speed Y
-		} else if (keys_pressed == KEY_DOWN) {
-			speedY[bglevel]-=1;
-		// Turn palette change on/off
-		} else if (keys_pressed == KEY_START){
-			paletteChange=!paletteChange;
+		// Re-set value of multikey when no keys pressed
+		if ((keys_held == 0) && (keys_released == 0))
+			multikey = FALSE;
+		
+		/* 
+			CONTROLS SECTION
+			Singlekeys
+		*/
+		
+		if (keys_held == 0 && multikey == FALSE) {
+			
+			// Pause / resume
+			if (keys_released == (KEY_A)) {
+				paused=!paused;
+
+			// Turn interrupt on/off
+			} else if (keys_released == (KEY_B)){
+				interrupt=!interrupt;
+				
+			// Decrease speed X
+			} else if ( keys_released == KEY_LEFT) {
+				speedX[bglevel]-=1;
+				
+			// Increase speed X
+			} else if (keys_released == KEY_RIGHT) {
+				speedX[bglevel]++;
+				
+			// Increase speed Y
+			} else if (keys_released == KEY_UP) {
+				speedY[bglevel]++;
+				
+			// Decrease speed Y
+			} else if (keys_released == KEY_DOWN) {
+				speedY[bglevel]-=1;
+				
+			// Turn palette change on/off
+			} else if (keys_released == KEY_START){
+				paletteChange=!paletteChange;
+				
+			// Turn parallax on/off
+			} else if (keys_released == KEY_SELECT){
+				parallax = !parallax;
+			
+			// Switch to right tiles only 
+			} else if (keys_released == (KEY_R)){
+				currentTiles++;
+				if (currentTiles==NTILES)
+					currentTiles = 0;
+				memcpy(BG_PALETTE, palsPointer[currentTiles], PalsLen[currentTiles]);
+				memcpy(&MAP[0][0], tilesPointer[currentTiles], TilesLen[currentTiles]);
+				memcpy(&MAP[MAP_ADDRESS0][0], mapsPointer[currentTiles], MapsLen[currentTiles]);
+				memcpy(&MAP[MAP_ADDRESS1][(rand()%0xFF)], tilesPointer[0]+(rand()%(TilesLen[0]-MapsLen[0])), 0x10);
+				memcpy(&MAP[MAP_ADDRESS2][(rand()%0xFF)], tilesPointer[0]+(rand()%(TilesLen[0]-MapsLen[0])), 0x10);
+				memcpy(&MAP[MAP_ADDRESS3][(rand()%0xFF)], tilesPointer[0]+(rand()%(TilesLen[0]-MapsLen[0])), 0x10);
+
+			// Switch to left tiles only
+			} else if (keys_released == (KEY_L)){
+				currentTiles--;
+				if (currentTiles==-1)
+					currentTiles = NTILES-1;
+				memcpy(BG_PALETTE, palsPointer[currentTiles], PalsLen[currentTiles]);
+				memcpy(&MAP[0][0], tilesPointer[currentTiles], TilesLen[currentTiles]);
+				memcpy(&MAP[MAP_ADDRESS0][0], mapsPointer[currentTiles], MapsLen[currentTiles]);
+				memcpy(&MAP[MAP_ADDRESS1][(rand()%0xFF)], tilesPointer[0]+(rand()%(TilesLen[0]-MapsLen[0])), 0x10);
+				memcpy(&MAP[MAP_ADDRESS2][(rand()%0xFF)], tilesPointer[0]+(rand()%(TilesLen[0]-MapsLen[0])), 0x10);
+				memcpy(&MAP[MAP_ADDRESS3][(rand()%0xFF)], tilesPointer[0]+(rand()%(TilesLen[0]-MapsLen[0])), 0x10);	
+			}
+		}
+		
+		/*
+			CONTROLS SECTION
+			Multikeys
+		*/
+		
 		// Set speeds to 0
-		} else if (keys_pressed == (KEY_A + KEY_B)){
+		if ((keys_held & KEY_A) && (keys_released & KEY_B)){
+			multikey = TRUE;
 			for (i=0;i<4;i++){
 				speedX[i] = 0;
 				speedY[i] = 0;
 			}
-		// Turn parallax on/off
-		} else if (keys_pressed == KEY_SELECT){
-			parallax = !parallax;
-		// Turn remap on/off
-		} else if (keys_pressed == (KEY_A + KEY_START)){
-			remap = !remap;
-		// Turn background remap on/off
-		} else if (keys_pressed == (KEY_A + KEY_SELECT)){
-			bgremap = !bgremap;
-		// Turn console mod on/off
-		} else if (keys_pressed == (KEY_B + KEY_SELECT)){
-			console = !console;
-		// Increase level of background
-		} else if (keys_pressed == (KEY_B + KEY_UP)){
-			bglevel++;
-			if (bglevel==4)
-				bglevel = 0;
-		// Decrease level of background
-		} else if (keys_pressed == (KEY_B + KEY_DOWN)){
-			bglevel-=1;
-			if (bglevel==-1)
-				bglevel = 3;
+			
 		// Enable / Disable selected background
-		} else if (keys_pressed == (KEY_B + KEY_START)){
+		} else if ((keys_held & KEY_START) && (keys_released & KEY_B)){
+			multikey = TRUE;
 			if (bglevel==0){
 				REG_DISPCNT^=BG0_ON;
 			} else if (bglevel==1){
@@ -260,63 +302,70 @@ int main() {
 			} else if (bglevel==3){
 				REG_DISPCNT^=BG3_ON;
 			}
+			
+		// Turn remap on/off
+		} else if ((keys_held & KEY_START) && (keys_released & KEY_A)){
+			multikey = TRUE;
+			remap = !remap;
+		
+		// Turn background remap on/off
+		} else if ((keys_held & KEY_SELECT) && (keys_released & KEY_A)){
+			multikey = TRUE;
+			bgremap = !bgremap;
+			
+		// Turn console mod on/off
+		} else if ((keys_held & KEY_SELECT) && (keys_released & KEY_B)){
+			multikey = TRUE;
+			console = !console;
+			
+		// Increase level of background
+		} else if ((keys_held & KEY_B) && (keys_released & KEY_UP)){
+			multikey = TRUE;
+			bglevel++;
+			if (bglevel==4)
+				bglevel = 0;
+			
+		// Decrease level of background
+		} else if ((keys_held & KEY_B) && (keys_released & KEY_DOWN)){
+			multikey = TRUE;
+			bglevel-=1;
+			if (bglevel==-1)
+				bglevel = 3;
+			
 		// Enable / Disable chaos mode
-		} else if (keys_pressed == (KEY_START + KEY_SELECT)){
+		} else if (keys_held == (KEY_START + KEY_SELECT)){
+			multikey = TRUE;
 			chaos=!chaos;
 			if(chaos){
 				interrupt=FALSE;
 			} else {
 				interrupt=TRUE;
 			}
+			
 		// Switch to right tiles & palette
-		} else if (keys_pressed == (KEY_R + KEY_A)){
+		} else if ((keys_held & KEY_R) && (keys_released & KEY_A)){
+			multikey = TRUE;
 			currentTiles++;
 			if (currentTiles==NTILES)
 				currentTiles = 0;
 			memcpy(BG_PALETTE, palsPointer[currentTiles], PalsLen[currentTiles]);
-			//memcpy(&MAP[0][0], tilesPointer[currentTiles], TilesLen[currentTiles]);
-			//memcpy(&MAP[MAP_ADDRESS0][0], mapsPointer[currentTiles], MapsLen[currentTiles]);
-			//memcpy(&MAP[MAP_ADDRESS1][(rand()%0xFF)], tilesPointer[0]+(rand()%(TilesLen[0]-MapsLen[0])), 0x10);
-			//memcpy(&MAP[MAP_ADDRESS2][(rand()%0xFF)], tilesPointer[0]+(rand()%(TilesLen[0]-MapsLen[0])), 0x10);
-			//memcpy(&MAP[MAP_ADDRESS3][(rand()%0xFF)], tilesPointer[0]+(rand()%(TilesLen[0]-MapsLen[0])), 0x10);
+			
 		// Switch to left tiles & palette
-		} else if (keys_pressed == (KEY_L + KEY_A)){
+		} else if ((keys_held & KEY_L) && (keys_released & KEY_A)){
+			multikey = TRUE;
 			currentTiles--;
 			if (currentTiles==-1)
 				currentTiles = NTILES-1;
 			memcpy(BG_PALETTE, palsPointer[currentTiles], PalsLen[currentTiles]);
-			//memcpy(&MAP[0][0], tilesPointer[currentTiles], TilesLen[currentTiles]);
-			//memcpy(&MAP[MAP_ADDRESS0][0], mapsPointer[currentTiles], MapsLen[currentTiles]);
-			//memcpy(&MAP[MAP_ADDRESS1][(rand()%0xFF)], tilesPointer[0]+(rand()%(TilesLen[0]-MapsLen[0])), 0x10);
-			//memcpy(&MAP[MAP_ADDRESS2][(rand()%0xFF)], tilesPointer[0]+(rand()%(TilesLen[0]-MapsLen[0])), 0x10);
-			//memcpy(&MAP[MAP_ADDRESS3][(rand()%0xFF)], tilesPointer[0]+(rand()%(TilesLen[0]-MapsLen[0])), 0x10);
+			
 		// Enable / Disable movie mode
-		} else if (keys_pressed == (KEY_R + KEY_RIGHT)){
+		} else if ((keys_held & KEY_R) && (keys_released & KEY_RIGHT)){
+			multikey = TRUE;
 			movie=!movie;
-		// Switch to right tiles only 
-		} else if (keys_pressed == (KEY_R)){
-			currentTiles++;
-			if (currentTiles==NTILES)
-				currentTiles = 0;
-			memcpy(BG_PALETTE, palsPointer[currentTiles], PalsLen[currentTiles]);
-			memcpy(&MAP[0][0], tilesPointer[currentTiles], TilesLen[currentTiles]);
-			memcpy(&MAP[MAP_ADDRESS0][0], mapsPointer[currentTiles], MapsLen[currentTiles]);
-			memcpy(&MAP[MAP_ADDRESS1][(rand()%0xFF)], tilesPointer[0]+(rand()%(TilesLen[0]-MapsLen[0])), 0x10);
-			memcpy(&MAP[MAP_ADDRESS2][(rand()%0xFF)], tilesPointer[0]+(rand()%(TilesLen[0]-MapsLen[0])), 0x10);
-			memcpy(&MAP[MAP_ADDRESS3][(rand()%0xFF)], tilesPointer[0]+(rand()%(TilesLen[0]-MapsLen[0])), 0x10);
-		// Switch to left tiles only
-		} else if (keys_pressed == (KEY_L)){
-			currentTiles--;
-			if (currentTiles==-1)
-				currentTiles = NTILES-1;
-			memcpy(BG_PALETTE, palsPointer[currentTiles], PalsLen[currentTiles]);
-			memcpy(&MAP[0][0], tilesPointer[currentTiles], TilesLen[currentTiles]);
-			memcpy(&MAP[MAP_ADDRESS0][0], mapsPointer[currentTiles], MapsLen[currentTiles]);
-			memcpy(&MAP[MAP_ADDRESS1][(rand()%0xFF)], tilesPointer[0]+(rand()%(TilesLen[0]-MapsLen[0])), 0x10);
-			memcpy(&MAP[MAP_ADDRESS2][(rand()%0xFF)], tilesPointer[0]+(rand()%(TilesLen[0]-MapsLen[0])), 0x10);
-			memcpy(&MAP[MAP_ADDRESS3][(rand()%0xFF)], tilesPointer[0]+(rand()%(TilesLen[0]-MapsLen[0])), 0x10);
-		// RESET TO START
-		} else if (keys_pressed == (KEY_A + KEY_B + KEY_START + KEY_SELECT)){
+			
+		// RESET TO DEFAULT
+		} else if (keys_held == (KEY_A + KEY_B + KEY_START + KEY_SELECT)){
+			multikey = TRUE;
 			currentTiles = 0;
 			memcpy(BG_PALETTE, palsPointer[currentTiles], PalsLen[currentTiles]);
 			memcpy(&MAP[0][0], tilesPointer[currentTiles], TilesLen[currentTiles]);
@@ -338,5 +387,6 @@ int main() {
 			paused = FALSE;
 			interrupt = TRUE;
 		}
+		
 	} while( 1 );
 }

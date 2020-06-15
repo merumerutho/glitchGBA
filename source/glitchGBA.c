@@ -1,3 +1,16 @@
+/*
+	glitchGBA
+	by meru
+	
+	github: merutochan
+	twitter: merumerutho
+	website: meru.cloud
+	
+	merutochan [[at]] gmail [[dot]] com
+	
+	credits to: libgba, coranac, infu_av
+*/
+
 #include <gba.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -11,7 +24,9 @@
 #define MAP_ADDRESS2 30
 #define MAP_ADDRESS3 31
 
-#define MOVIEFPS 1
+#define REG_BG_AFFINE ((BGAffineDest *)(REG_BASE+0x0000))
+
+#define MOVIEFPS 30
 
 #define DEFAULT_CONSOLE TRUE
 
@@ -53,9 +68,9 @@ int main() {
 	bool console = DEFAULT_CONSOLE;
 	// Frame counter
 	int frameCounter=0;
-	// increaseRate value (depends on hrw/emu)
-	int increaseRateX[4] = {0,0,0,0};
-	int increaseRateY[4] = {0,0,0,0};
+	// moveRate value (depends on hrw/emu)
+	int moveRateX[4] = {0,0,0,0};
+	int moveRateY[4] = {0,0,0,0};
 	// randomChange for palette
 	char randomChange;
 	// backgroundLevel to swap
@@ -64,10 +79,28 @@ int main() {
 	keys_held = 0;
 	// Multikey control 
 	bool multikey = FALSE;
+	// Rotation mode
+	bool rotationMode = FALSE;
+	// Scale in Rotation mode
+	int scale2 = 1<<8;
+	int scale3 = 1<<8;
+	// Theta Speed
+	int BG2ThetaSpeed = 0;
+	int BG3ThetaSpeed = 0;
+	
+	// BG Affine Structures (for rotoscaling)
+	BGAffineSource BG_AFF_S2 = {0, 0, 0, 0, 1<<8, 1<<8, 0x0000};
+	BGAffineDest BG_AFF_D2;
+	BGAffineSource BG_AFF_S3 = {0, 0, 0, 0, 1<<8, 1<<8, 0x0000};
+	BGAffineDest BG_AFF_D3;
 	
 	// Enable interrupt VBLANK
 	irqInit();
 	irqEnable(IRQ_VBLANK);
+	
+	// Randomize
+	scanKeys();
+	srand(keysHeld()+1);
 	
 	// BACKGROUND
 	// Load palette
@@ -92,13 +125,20 @@ int main() {
 	REG_BG2VOFS= rand() % 160;
 	REG_BG3HOFS= rand() % 240;
 	REG_BG3VOFS= rand() % 160;
+	// For RotoScale mode as well
+	BG_AFF_S2.x= rand() % 240;
+	BG_AFF_S2.y= rand() % 160;
+	BG_AFF_S3.x= rand() % 240;
+	BG_AFF_S3.y= rand() % 160;
 	
 	// Set up registers
+	// REGULAR BG
 	REG_BG0CNT = TILE_BASE(0) | SCREEN_BASE(MAP_ADDRESS0) | BG_256_COLOR | BG_SIZE(0) | BG_PRIORITY(3);
-	REG_BG1CNT = TILE_BASE(0) | SCREEN_BASE(MAP_ADDRESS1) | BG_256_COLOR | BG_SIZE(1) | BG_PRIORITY(2);
-	REG_BG2CNT = TILE_BASE(0) | SCREEN_BASE(MAP_ADDRESS2) | BG_256_COLOR | BG_SIZE(2) | BG_PRIORITY(1);
-	REG_BG3CNT = TILE_BASE(0) | SCREEN_BASE(MAP_ADDRESS3) | BG_256_COLOR | BG_SIZE(3) | BG_PRIORITY(0);
-	REG_DISPCNT= BG0_ON | BG1_ON | BG2_ON | BG3_ON;
+	REG_BG1CNT = TILE_BASE(0) | SCREEN_BASE(MAP_ADDRESS1) | BG_256_COLOR | BG_SIZE(0) | BG_PRIORITY(2);
+	REG_BG2CNT = TILE_BASE(0) | SCREEN_BASE(MAP_ADDRESS2) | BG_256_COLOR | BG_SIZE(0) | BG_PRIORITY(1) | BG_WRAP;
+	REG_BG3CNT = TILE_BASE(0) | SCREEN_BASE(MAP_ADDRESS3) | BG_256_COLOR | BG_SIZE(0) | BG_PRIORITY(0) | BG_WRAP;
+	
+	REG_DISPCNT= (rotationMode<<1) | BG0_ON | BG1_ON | BG2_ON | BG3_ON;
 	
 	do {
 		// Interrupt Wait
@@ -114,43 +154,69 @@ int main() {
 				kX[i]+=speedX[i];
 				kY[i]+=speedY[i];
 			}
-				
+			
 			// VBA has a weird behaviour compared to gba and other emus,
 			// this is just a quick fix.
 			if (console){
 				for(i=0;i<4;i++){
-					increaseRateX[i] = speedX[i];
-					increaseRateY[i] = speedY[i];
+					moveRateX[i] = speedX[i];
+					moveRateY[i] = speedY[i];
 				}
 			}else{
 				for(i=0;i<4;i++){
-					increaseRateX[i] = kX[i];
-					increaseRateY[i] = kY[i];
+					moveRateX[i] = kX[i];
+					moveRateY[i] = kY[i];
 				}
 			}
 			
 			// If parallax enabled
 			if(parallax){
-				REG_BG0HOFS+=increaseRateX[0];
-				REG_BG0VOFS+=increaseRateY[0];
-				REG_BG1HOFS+=increaseRateX[1];
-				REG_BG1VOFS+=increaseRateY[1];
-				REG_BG2HOFS+=increaseRateX[2];
-				REG_BG2VOFS+=increaseRateY[2];
-				REG_BG3HOFS+=increaseRateX[3];
-				REG_BG3VOFS+=increaseRateY[3];
+				if (!rotationMode){
+					REG_BG0HOFS+=moveRateX[0];
+					REG_BG0VOFS+=moveRateY[0];
+					REG_BG1HOFS+=moveRateX[1];
+					REG_BG1VOFS+=moveRateY[1];
+					REG_BG2HOFS+=moveRateX[2];
+					REG_BG2VOFS+=moveRateY[2];
+					REG_BG3HOFS+=moveRateX[3];
+					REG_BG3VOFS+=moveRateY[3];
+				} else {
+					BG_AFF_S2.tX=moveRateX[2];
+					BG_AFF_S2.tY=moveRateY[2];
+					BG_AFF_S3.tX=moveRateX[3];
+					BG_AFF_S3.tY=moveRateY[3];
+					BG_AFF_S2.theta+=BG2ThetaSpeed;
+					BG_AFF_S3.theta+=BG3ThetaSpeed;
+				}
+				
 			// else everybody moves the same
 			} else {
-				REG_BG0HOFS+=increaseRateX[0];
-				REG_BG0VOFS-=increaseRateY[0];
-				REG_BG1HOFS+=increaseRateX[0];
-				REG_BG1VOFS-=increaseRateY[0];
-				REG_BG2HOFS+=increaseRateX[0];
-				REG_BG2VOFS-=increaseRateY[0];
-				REG_BG3HOFS+=increaseRateX[0];
-				REG_BG3VOFS-=increaseRateY[0];
+				if (!rotationMode){
+					REG_BG0HOFS+=moveRateX[0];
+					REG_BG0VOFS-=moveRateY[0];
+					REG_BG1HOFS+=moveRateX[0];
+					REG_BG1VOFS-=moveRateY[0];
+					REG_BG2HOFS+=moveRateX[0];
+					REG_BG2VOFS-=moveRateY[0];
+					REG_BG3HOFS+=moveRateX[0];
+					REG_BG3VOFS-=moveRateY[0];
+				} else {
+					BG_AFF_S2.tX=moveRateX[0];
+					BG_AFF_S2.tY=moveRateY[0];
+					BG_AFF_S3.tX=moveRateX[0];
+					BG_AFF_S3.tY=moveRateY[0];
+					BG_AFF_S2.theta+=BG2ThetaSpeed;
+					BG_AFF_S2.theta+=BG2ThetaSpeed;
+				}
 			}
 			
+			if (rotationMode){
+				// Set Affine (RotoScale) Data
+				BgAffineSet(&BG_AFF_S2, &BG_AFF_D2, 1);
+				REG_BG_AFFINE[2] = BG_AFF_D2;
+				BgAffineSet(&BG_AFF_S3, &BG_AFF_D3, 1);
+				REG_BG_AFFINE[3] = BG_AFF_D3;
+			}
 		}
 		
 		// Remap background
@@ -259,9 +325,9 @@ int main() {
 				memcpy(BG_PALETTE, palsPointer[currentTiles], PalsLen[currentTiles]);
 				memcpy(&MAP[0][0], tilesPointer[currentTiles], TilesLen[currentTiles]);
 				memcpy(&MAP[MAP_ADDRESS0][0], mapsPointer[currentTiles], MapsLen[currentTiles]);
-				memcpy(&MAP[MAP_ADDRESS1][(rand()%0xFF)], tilesPointer[0]+(rand()%(TilesLen[0]-MapsLen[0])), 0x10);
-				memcpy(&MAP[MAP_ADDRESS2][(rand()%0xFF)], tilesPointer[0]+(rand()%(TilesLen[0]-MapsLen[0])), 0x10);
-				memcpy(&MAP[MAP_ADDRESS3][(rand()%0xFF)], tilesPointer[0]+(rand()%(TilesLen[0]-MapsLen[0])), 0x10);
+				memcpy(&MAP[MAP_ADDRESS1][(rand()%0xFF)], tilesPointer[currentTiles]+(rand()%(TilesLen[currentTiles])), MapsLen[currentTiles]);
+				memcpy(&MAP[MAP_ADDRESS2][(rand()%0xFF)], tilesPointer[currentTiles]+(rand()%(TilesLen[currentTiles])), MapsLen[currentTiles]);
+				memcpy(&MAP[MAP_ADDRESS3][(rand()%0xFF)], tilesPointer[currentTiles]+(rand()%(TilesLen[currentTiles])), MapsLen[currentTiles]);
 
 			// Switch to left tiles only
 			} else if (keys_released == (KEY_L)){
@@ -271,9 +337,9 @@ int main() {
 				memcpy(BG_PALETTE, palsPointer[currentTiles], PalsLen[currentTiles]);
 				memcpy(&MAP[0][0], tilesPointer[currentTiles], TilesLen[currentTiles]);
 				memcpy(&MAP[MAP_ADDRESS0][0], mapsPointer[currentTiles], MapsLen[currentTiles]);
-				memcpy(&MAP[MAP_ADDRESS1][(rand()%0xFF)], tilesPointer[0]+(rand()%(TilesLen[0]-MapsLen[0])), 0x10);
-				memcpy(&MAP[MAP_ADDRESS2][(rand()%0xFF)], tilesPointer[0]+(rand()%(TilesLen[0]-MapsLen[0])), 0x10);
-				memcpy(&MAP[MAP_ADDRESS3][(rand()%0xFF)], tilesPointer[0]+(rand()%(TilesLen[0]-MapsLen[0])), 0x10);	
+				memcpy(&MAP[MAP_ADDRESS1][(rand()%0xFF)], tilesPointer[currentTiles]+(rand()%(TilesLen[currentTiles])), MapsLen[currentTiles]);
+				memcpy(&MAP[MAP_ADDRESS2][(rand()%0xFF)], tilesPointer[currentTiles]+(rand()%(TilesLen[currentTiles])), MapsLen[currentTiles]);
+				memcpy(&MAP[MAP_ADDRESS3][(rand()%0xFF)], tilesPointer[currentTiles]+(rand()%(TilesLen[currentTiles])), MapsLen[currentTiles]);	
 			}
 		}
 		
@@ -282,8 +348,42 @@ int main() {
 			Multikeys
 		*/
 		
+		// Reset status
+		if (keys_held == (KEY_A + KEY_B + KEY_START + KEY_SELECT)){
+			multikey = TRUE;
+			currentTiles = 0;
+			memcpy(BG_PALETTE, palsPointer[currentTiles], PalsLen[currentTiles]);
+			memcpy(&MAP[0][0], tilesPointer[currentTiles], TilesLen[currentTiles]);
+			memcpy(&MAP[MAP_ADDRESS0][0], mapsPointer[currentTiles], MapsLen[currentTiles]);
+			memcpy(&MAP[MAP_ADDRESS1][(rand()%0xFF)], tilesPointer[0]+(rand()%(TilesLen[0]-MapsLen[0])), 0x10);
+			memcpy(&MAP[MAP_ADDRESS2][(rand()%0xFF)], tilesPointer[0]+(rand()%(TilesLen[0]-MapsLen[0])), 0x10);
+			memcpy(&MAP[MAP_ADDRESS3][(rand()%0xFF)], tilesPointer[0]+(rand()%(TilesLen[0]-MapsLen[0])), 0x10);
+			for (i=0;i<4;i++){
+				speedX[i] = 0;
+				speedY[i] = 0;
+			}
+			chaos = FALSE;
+			bgremap = FALSE;
+			remap = FALSE;
+			parallax = FALSE;
+			console = TRUE;
+			movie = FALSE;
+			frameCounter=0;
+			paused = FALSE;
+			interrupt = TRUE;
+			scale2 = 1<<8;
+			scale3 = 1<<8;
+			BG_AFF_S2.sX = BG_AFF_S2.sY = (1<<16)/scale2;
+			BG_AFF_S3.sX = BG_AFF_S3.sY = (1<<16)/scale3;
+			BG_AFF_S2.theta = BG_AFF_S3.theta = 0;
+			BG2ThetaSpeed = BG3ThetaSpeed = 0;
+			BG_AFF_S2.x=0;
+			BG_AFF_S2.y=0;
+			BG_AFF_S3.x=0;
+			BG_AFF_S3.y=0;
+			
 		// Set speeds to 0
-		if ((keys_held & KEY_A) && (keys_released & KEY_B)){
+		} else if ((keys_held & KEY_A) && (keys_released & KEY_B)){
 			multikey = TRUE;
 			for (i=0;i<4;i++){
 				speedX[i] = 0;
@@ -342,50 +442,81 @@ int main() {
 				interrupt=TRUE;
 			}
 			
-		// Switch to right tiles & palette
-		} else if ((keys_held & KEY_R) && (keys_released & KEY_A)){
+		// In rotation mode, rotate right
+		} else if ((keys_held == (KEY_R + KEY_A))){
 			multikey = TRUE;
-			currentTiles++;
-			if (currentTiles==NTILES)
-				currentTiles = 0;
-			memcpy(BG_PALETTE, palsPointer[currentTiles], PalsLen[currentTiles]);
+			if (rotationMode){
+				if (bglevel%2==0){
+					BG2ThetaSpeed -= 1;
+				} else {
+					BG3ThetaSpeed -= 1;
+				}
+			}
 			
-		// Switch to left tiles & palette
-		} else if ((keys_held & KEY_L) && (keys_released & KEY_A)){
+		// In rotation mode, rotate left
+		} else if ((keys_held == (KEY_L + KEY_A))){
 			multikey = TRUE;
-			currentTiles--;
-			if (currentTiles==-1)
-				currentTiles = NTILES-1;
-			memcpy(BG_PALETTE, palsPointer[currentTiles], PalsLen[currentTiles]);
-			
+			if (rotationMode){
+				if (bglevel%2==0){
+					BG2ThetaSpeed +=1;
+				} else {
+					BG3ThetaSpeed +=1;
+				}
+			}
+		
+		// In rotation mode, zoom in
+		} else if ((keys_held == (KEY_R + KEY_B))){
+			multikey = TRUE;
+			if (rotationMode){
+				if (bglevel%2==0){
+					scale2 += 1;
+					BG_AFF_S2.sX = BG_AFF_S2.sY = (1<<16)/scale2;
+				} else {
+					scale3 += 1;
+					BG_AFF_S3.sX = BG_AFF_S3.sY = (1<<16)/scale3;
+				}
+			}
+		
+		// In rotation mode, zoom out
+		} else if ((keys_held == (KEY_L + KEY_B))){
+			multikey = TRUE;
+			if (rotationMode){
+				if (bglevel%2==0){
+					scale2 -= 1;
+					BG_AFF_S2.sX = BG_AFF_S2.sY = (1<<16)/scale2;
+				} else {
+					scale3 -= 1;
+					BG_AFF_S3.sX = BG_AFF_S3.sY = (1<<16)/scale3;
+				}
+			}
+		
 		// Enable / Disable movie mode
 		} else if ((keys_held & KEY_R) && (keys_released & KEY_RIGHT)){
 			multikey = TRUE;
 			movie=!movie;
 			
-		// RESET TO DEFAULT
-		} else if (keys_held == (KEY_A + KEY_B + KEY_START + KEY_SELECT)){
+		// Switch rotation mode - normal mode
+		} else if ((keys_held & KEY_L) && (keys_released & KEY_R)) {
 			multikey = TRUE;
-			currentTiles = 0;
-			memcpy(BG_PALETTE, palsPointer[currentTiles], PalsLen[currentTiles]);
-			memcpy(&MAP[0][0], tilesPointer[currentTiles], TilesLen[currentTiles]);
-			memcpy(&MAP[MAP_ADDRESS0][0], mapsPointer[currentTiles], MapsLen[currentTiles]);
-			memcpy(&MAP[MAP_ADDRESS1][(rand()%0xFF)], tilesPointer[0]+(rand()%(TilesLen[0]-MapsLen[0])), 0x10);
-			memcpy(&MAP[MAP_ADDRESS2][(rand()%0xFF)], tilesPointer[0]+(rand()%(TilesLen[0]-MapsLen[0])), 0x10);
-			memcpy(&MAP[MAP_ADDRESS3][(rand()%0xFF)], tilesPointer[0]+(rand()%(TilesLen[0]-MapsLen[0])), 0x10);
-			for (i=0;i<4;i++){
-				speedX[i] = 0;
-				speedY[i] = 0;
+			rotationMode=!rotationMode;
+			if (rotationMode){
+				REG_DISPCNT = MODE_2 | BG0_ON | BG1_ON | BG2_ON | BG3_ON;
+				memcpy(&MAP[MAP_ADDRESS2][0], mapsPointer[currentTiles], MapsLen[currentTiles]);
+				memcpy(&MAP[MAP_ADDRESS3][0], tilesPointer[currentTiles]+(rand()%(TilesLen[currentTiles])), MapsLen[currentTiles]);
+			} else {
+				REG_DISPCNT = BG0_ON | BG1_ON | BG2_ON | BG3_ON;
+				// Load Tiles 1
+				memcpy(&MAP[0][0], tilesPointer[currentTiles], TilesLen[currentTiles]);
+				// Load 1st layer of mapping
+				memcpy(&MAP[MAP_ADDRESS0][0], mapsPointer[currentTiles], MapsLen[currentTiles]);
+				// Load 2nd Layer of mapping
+				memcpy(&MAP[MAP_ADDRESS1][0], tilesPointer[currentTiles]+(rand()%(TilesLen[currentTiles])), MapsLen[currentTiles]);
+				// Load 3rd Layer of mapping
+				memcpy(&MAP[MAP_ADDRESS2][0], tilesPointer[currentTiles]+(rand()%(TilesLen[currentTiles])), MapsLen[currentTiles]);
+				// Load 4th Layer of mapping
+				memcpy(&MAP[MAP_ADDRESS3][0], tilesPointer[currentTiles]+(rand()%(TilesLen[currentTiles])), MapsLen[currentTiles]);
+				bglevel = 0;
 			}
-			chaos = FALSE;
-			bgremap = FALSE;
-			remap = FALSE;
-			parallax = FALSE;
-			console = FALSE;
-			movie = FALSE;
-			frameCounter=0;
-			paused = FALSE;
-			interrupt = TRUE;
 		}
 		
 	} while( 1 );

@@ -1,4 +1,4 @@
-# glitchGBA v1.1
+# glitchGBA v1.2 (beta)
 A simple tileset-based video glitch software for Nintendo Gameboy Advance, developed with libgba.
 
 You may think of it as something similar to **glitchNES** by NO-CARRIER.
@@ -15,8 +15,13 @@ Despite the real GBA hardware natively not being capable of video out, you can r
 [Demo2](https://youtu.be/0SPNZVn2vGY)
 
 ## How does it work?
+**In normal mode:**
 Gets some tilesets into the video memory, then proceeds to display the 4 layered GBA backgrounds after applying random tileset displacement. The palette can also be altered.
 The layers can all be moved together or selected and moved independently to create a parallax scrolling effect.
+
+**In rotation mode:**
+Same thing but applied to only 2 layers which can however be rotated and zoommed.
+To rotate them independently, select layer with B+Up/Down and enable parallax mode.
 
 ## Commands
 - **D-Pad** : Change speedX/speedY of current layer (there is no indication of which layer is currently selected atm)
@@ -37,6 +42,13 @@ The layers can all be moved together or selected and moved independently to crea
 - **Hold L, press A**: Switch to previous tileset (don't reglitch)
 - **Hold R, press A**: Switch to next tileset (don't reglitch)
 - **Hold R, press Right**: Enable/Disable autoswapper (laggish but does its work)
+- **A+B+Select+Start**: Reset ROM.
+## Commands introduced in 1.2
+- **Hold R, press L**: Switch between normal and rotation mode
+- **Hold L, press A**: In rotation mode, turn current layer left.
+- **Hold R, press A**: In rotation mode, turn current layer right.
+- **Hold L, press B**: In rotation mode, zoom current layer in.
+- **Hold R, press B**: In rotation mode, zoom current layer out.
 
 Notice that 'console mode' is a compatibility option which is enabled by default. Apparently, the Visual Boy Advance emulator needs this option be disabled to work as intended.
 

@@ -44,7 +44,7 @@ To rotate them independently, select layer with B+Up/Down and enable parallax mo
 - **Hold R, press Right**: Enable/Disable autoswapper (laggish but does its work)
 - **A+B+Select+Start**: Reset ROM.
 ## Commands introduced in 1.2
-- **Hold R, press L**: Switch between normal and rotation mode
+- **Hold L, press R**: Switch between normal and rotation mode
 - **Hold L, press A**: In rotation mode, turn current layer left.
 - **Hold R, press A**: In rotation mode, turn current layer right.
 - **Hold L, press B**: In rotation mode, zoom current layer in.

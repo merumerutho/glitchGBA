@@ -290,6 +290,8 @@ static void updateRemap()
 
 static void updatePalette()
 {
+	// Buffer for palette memory address
+	unsigned short * paletteAddress;	
 	// Mix and change randomly palette (one color at a time)
 	if(paletteChange && !paused)
 	{
@@ -335,9 +337,6 @@ int main()
 	
 	// your friendly dummy i
 	int i;
-	
-	// Buffer for palette memory address
-	unsigned short * paletteAddress;	
 	
 	// Enable interrupt VBLANK
 	irqInit();

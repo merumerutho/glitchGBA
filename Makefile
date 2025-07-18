@@ -113,7 +113,7 @@ export CONVERTED := $(wildcard $(SOURCES)/tile*)
 .PHONY: $(BUILD) clean grit
  
 #---------------------------------------------------------------------------------
-$(BUILD):
+$(BUILD): generate_headers
 	@[ -d $@ ] || mkdir -p $@
 	@$(MAKE) --no-print-directory -C $(BUILD) -f $(CURDIR)/Makefile
 
@@ -121,7 +121,13 @@ $(BUILD):
 clean:
 	@echo clean ...
 	@rm -fr $(BUILD) $(TARGET).elf $(TARGET).gba 
-	@rm -rf $(CONVERTED) $(SOURCES)/graphics.h
+	@rm -rf $(CONVERTED) source/graphics.h
+
+generate_headers:
+	@echo Generating headers...
+	@python generate_headers.py
+	@mv *.h source/
+	@mv *.c source/
 
 #---------------------------------------------------------------------------------
 else

@@ -59,12 +59,8 @@ Notice that 'console mode' is a compatibility option which is enabled by default
 - Prepare the tilesets in a 256x256 sized **png** file and put it in the graphics folder under whichever name you like.
 You can probably exceed this size vertically but be sure to keep the horizontal size 256 pixels. It's not vital but it's probably more organized. Also notice that the size of the tileset should be in multiples of 8 since that's the minimum size of a tile block.
 You may theoretically put a lot of tiles but at some point the memory of the GBA will be full and some issues will arise in the compiler. At least a dozen should fit, however
-- Once you're ready, go back to the main folder and launch **compile.exe**. The rom will compile.
-
-### Other systems
-As of now I still did not include an all-in-one toolchain for importing graphics and compiling out of Windows.
-The Autoit3 script however should be easily ported into python which should guarantee cross-compatibility.
-Look forward this for the next releases.
+- Run ```make genereate_headers```.
+- Finally, run ```make```.
 
 ## Credits
 - [Coranac](http://www.coranac.com/) for [grit](https://www.coranac.com/projects/grit/) and the [tonc](http://www.coranac.com/tonc/text/toc.htm) which taught me many things.

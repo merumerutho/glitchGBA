@@ -52,14 +52,17 @@ To rotate them independently, select layer with B+Up/Down and enable parallax mo
 
 Notice that 'console mode' is a compatibility option which is enabled by default. Apparently, the Visual Boy Advance emulator needs this option be disabled to work as intended.
 
-## How to compile the ROM with your own graphics:
-### Windows:
+## Building from source:
+### Prerequisites
 - Install [devKitPro](https://github.com/devkitPro/installer/releases). Select the GBA development.
-- Clone the git or download the zip and extract it, then open the folder.
+- Make sure you have [Python3](https://www.python.org/downloads/) installed.
 - Prepare the tilesets in a 256x256 sized **png** file and put it in the graphics folder under whichever name you like.
 You can probably exceed this size vertically but be sure to keep the horizontal size 256 pixels. It's not vital but it's probably more organized. Also notice that the size of the tileset should be in multiples of 8 since that's the minimum size of a tile block.
 You may theoretically put a lot of tiles but at some point the memory of the GBA will be full and some issues will arise in the compiler. At least a dozen should fit, however
-- Run ```make genereate_headers```.
+
+### Actual building
+- Run ```make genereate_headers```. This requires that you run [grit](https://github.com/devkitPro/grit). 
+Grit is contained in the devkitpro distribution. Make sure that the devkitPro/tools/bin folder is in your PATH variable.
 - Finally, run ```make```.
 
 ## Credits

@@ -23,10 +23,11 @@
 #define TRUE 1
 #define FALSE 0
 
-#define MAP_ADDRESS0 28
-#define MAP_ADDRESS1 29
-#define MAP_ADDRESS2 30
-#define MAP_ADDRESS3 31
+// Background map addresses in VRAM
+#define MAP_ADDRESS0 28  // Background layer 0
+#define MAP_ADDRESS1 29  // Background layer 1  
+#define MAP_ADDRESS2 30  // Background layer 2
+#define MAP_ADDRESS3 31  // Background layer 3
 
 #define MAP_LAYER0 &(MAP[MAP_ADDRESS0][0])
 #define MAP_LAYER1 &(MAP[MAP_ADDRESS1][0])
@@ -34,84 +35,65 @@
 #define MAP_LAYER3 &(MAP[MAP_ADDRESS3][0])
 #define REG_BG_AFFINE ((BGAffineDest *)(REG_BASE+0x0000))
 
+// GBA screen dimensions
 #define SCREEN_WIDTH 240
 #define SCREEN_HEIGHT 160
 
-#define FRAME_COUNT_SCROLLING_MODE 30
+// Frame timing constants
+#define FRAME_COUNT_SCROLLING_MODE 30  // Frames between tileset swaps
 
-#define NUM_LAYERS 4
-
-#define EMULATOR_MODE 0
-#define CONSOLE_MODE 1
+// Background layer configuration
+#define NUM_LAYERS 4                   // Total number of background layers
+#define MAX_LAYER_INDEX (NUM_LAYERS-1) // Highest valid layer index
 
 #include "graphics.h"
 
-// --- global variables --- 
-// VSYNC flag
-bool vsync = TRUE;
+// ===== GLOBAL STATE VARIABLES =====
+// Display and timing control
+bool vsync = TRUE;  // Enable/disable vertical sync wait
 
-// Layer positions
-// Positions
-int x_pos[NUM_LAYERS] = {0, 1, 2, 3};
-int y_pos[NUM_LAYERS] = {0, 1, 2, 3};
+// Layer movement state
+int x_pos[NUM_LAYERS] = {0, 1, 2, 3};    // Current X positions
+int y_pos[NUM_LAYERS] = {0, 1, 2, 3};    // Current Y positions
+int x_speed[NUM_LAYERS] = {0, 1, 2, 3};  // X movement speeds
+int y_speed[NUM_LAYERS] = {0, 1, 2, 3};  // Y movement speeds
+int moveRateX[NUM_LAYERS] = {0,0,0,0};   // Platform-adjusted X rates
+int moveRateY[NUM_LAYERS] = {0,0,0,0};   // Platform-adjusted Y rates
 
-// Layer speeds
-int x_speed[NUM_LAYERS] = {0, 1, 2, 3};
-int y_speed[NUM_LAYERS] = {0, 1, 2, 3};
+// Tileset and layer selection
+int currentTiles = 0;  // Currently active tileset index
+int bglevel = 0;       // Currently selected background layer
 
-// currently-selected tile
-int currentTiles = 0;
+// Application state flags
+bool paused = FALSE;            // Pause/resume animation
+bool paletteChange = FALSE;     // Dynamic palette modification
+bool parallax = FALSE;          // Independent layer movement
+bool remap = FALSE;             // Dynamic tileset remapping (CPU intensive)
+bool bg_remap = FALSE;          // Background layer remapping (CPU intensive)
 
-// currently-selected bg level
-int bglevel = 0;
-
-// Are we paused?
-bool paused = FALSE;
-
-// Shall we change palette dynamically?
-bool paletteChange = FALSE;
-
-// Apply parallax effect flag
-bool parallax = FALSE;
-
-// Remap flag (moves tilesets around dynamically, heavy on CPU)
-bool remap = FALSE;
-
-// remap background flag (moves tilesets also for layer0, heavy on CPU)
-bool bg_remap = FALSE;
-
-// chaos randomizer flag (generates overall chaos)
-bool chaos = FALSE;
-
-// frame scrolling mode flag
-bool frame_scroll_mode = FALSE;
-
-// device mode (console vs. emulator) flag
-bool device_mode = CONSOLE_MODE;
+bool chaos = FALSE;             // Chaos mode - extreme randomization
+bool frame_scroll_mode = FALSE; // Automatic tileset cycling
 
 // Frame counter
 int frameCounter=0;
 
-// moveRate value (usage depends on hrw/emu)
-int moveRateX[NUM_LAYERS] = {0,0,0,0};
-int moveRateY[NUM_LAYERS] = {0,0,0,0};
+// (moveRate arrays moved above with other layer movement variables)
 
-// Rotation mode
-bool rotationMode = FALSE;
+// Rotation mode state
+bool rotationMode = FALSE;      // Enable rotation/scaling mode
 
-// Scale in Rotation mode
-int scale2 = 1<<8;
-int scale3 = 1<<8;
-// Theta Speed
-int BG2_angular_speed = 0;
-int BG3_angular_speed = 0;
+// Rotation mode scaling and speed
+int scale2 = 1<<8;              // BG2 zoom scale (fixed point)
+int scale3 = 1<<8;              // BG3 zoom scale (fixed point)
+int BG2_angular_speed = 0;      // BG2 rotation speed
+int BG3_angular_speed = 0;      // BG3 rotation speed
 
 
-// BG Affine Structures (for rotoscaling)
-BGAffineSource BG_AFF_S2 = {0, 0, 0, 0, 1<<8, 1<<8, 0x0000};
-BGAffineDest BG_AFF_D2;
-BGAffineSource BG_AFF_S3 = {0, 0, 0, 0, 1<<8, 1<<8, 0x0000};
-BGAffineDest BG_AFF_D3;
+// Background affine transformation structures (for rotation/scaling)
+BGAffineSource BG_AFF_S2 = {0, 0, 0, 0, 1<<8, 1<<8, 0x0000};  // BG2 source params
+BGAffineDest BG_AFF_D2;                                          // BG2 dest params
+BGAffineSource BG_AFF_S3 = {0, 0, 0, 0, 1<<8, 1<<8, 0x0000};  // BG3 source params
+BGAffineDest BG_AFF_D3;                                          // BG3 dest params
 	
 
 //
@@ -166,7 +148,6 @@ static void init()
 	bg_remap = FALSE;
 	remap = FALSE;
 	parallax = FALSE;
-	device_mode = CONSOLE_MODE;
 	frame_scroll_mode = FALSE;
 	frameCounter=0;
 	paused = FALSE;
@@ -197,8 +178,13 @@ static void updateScreenMovement()
 			y_pos[i] += y_speed[i];	
 			// VBA has a weird behaviour compared to gba and other emus,
 			// this is just a quick fix.
-			moveRateX[i] = (device_mode == CONSOLE_MODE) ? x_speed[i] : x_pos[i];
-			moveRateY[i] = (device_mode == CONSOLE_MODE) ? y_speed[i] : y_pos[i];
+#ifdef CONSOLE_MODE
+			moveRateX[i] = x_speed[i] ;
+			moveRateY[i] = y_speed[i] ;
+#else
+			moveRateX[i] = x_pos[i] ;
+			moveRateY[i] = y_pos[i] ;
+#endif
 		}
 		
 		// Parallax => independent movement
@@ -246,7 +232,7 @@ static void updateScreenMovement()
 				BG_AFF_S3.tX = moveRateX[0];
 				BG_AFF_S3.tY = moveRateY[0];
 				BG_AFF_S2.theta += BG2_angular_speed;
-				BG_AFF_S2.theta += BG2_angular_speed;
+				BG_AFF_S3.theta += BG2_angular_speed;
 			}
 		}
 		
@@ -533,12 +519,7 @@ int main()
 			multikey = TRUE;
 			bg_remap = !bg_remap;
 		}	
-		// Turn device_mode mod on/off
-		else if ((keys_held & KEY_SELECT) && (keys_released & KEY_B))
-		{
-			multikey = TRUE;
-			device_mode = !device_mode;
-		}	
+		
 		// Increase level of background
 		else if ((keys_held & KEY_B) && (keys_released & KEY_UP))
 		{

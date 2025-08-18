@@ -1,10 +1,10 @@
-# glitchGBA v1.2 (beta)
+# glitchGBA
 A simple tileset-based video glitch software for Nintendo Gameboy Advance, developed with libgba.
 
 You may think of it as something similar to [**glitchNES**](http://no-carrier.com/index.php?/glitchnes/) by NO-CARRIER.
 It was created with live video performing in mind so it's highly interactive and versatile allowing for a lot of tilesets to fit into the GBA rom.
 
-Despite the real GBA hardware natively not being capable of video out, you can run this in a common emulator for PC, Raspberry Pi, the PSP, OpenDingux devices, even a Gamecube with the Gameboy Player, all of which can display on a real screen or projector.
+Despite the fact that the original GBA hardware natively is not capable of producing external video output, you can run this in a common emulator for PC, Raspberry Pi, the PSP, modern handheld devices, even a Gamecube with the Gameboy Player, all of which can display on a real screen or projector.
 
 ## Examples
 

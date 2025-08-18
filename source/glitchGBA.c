@@ -121,8 +121,8 @@ static inline void init_map()
 
 static inline void init_tile()
 {
-	memcpy(BG_PALETTE, palsPointer[currentTiles], PalsLen[currentTiles]);
-	memcpy(&MAP[0][0], tilesPointer[currentTiles], TilesLen[currentTiles]);
+	dmaCopy(palsPointer[currentTiles], BG_PALETTE, PalsLen[currentTiles]);
+	dmaCopy(tilesPointer[currentTiles], &MAP[0][0], TilesLen[currentTiles]);
 	init_map();
 }
 
@@ -130,8 +130,8 @@ static inline void init_tile()
 static void init() 
 {	
 	currentTiles = 0;
-	memcpy(BG_PALETTE, palsPointer[currentTiles], PalsLen[currentTiles]);
-	memcpy(&MAP[0][0], tilesPointer[currentTiles], TilesLen[currentTiles]);
+	dmaCopy(palsPointer[currentTiles], BG_PALETTE, PalsLen[currentTiles]);
+	dmaCopy(tilesPointer[currentTiles], &MAP[0][0], TilesLen[currentTiles]);
 	
 	// Reset map
 	init_map();
@@ -232,7 +232,7 @@ static void updateScreenMovement()
 				BG_AFF_S3.tX = moveRateX[0];
 				BG_AFF_S3.tY = moveRateY[0];
 				BG_AFF_S2.theta += BG2_angular_speed;
-				BG_AFF_S3.theta += BG2_angular_speed;
+				BG_AFF_S3.theta += BG3_angular_speed;
 			}
 		}
 		
@@ -291,7 +291,7 @@ static void updatePalette()
 
 static void updateFrameScroll()
 {
-	// Frame-scrolling mode
+	// Frame-scrolling mode - automatically cycles through tilesets\n	// VBlank timing handled by main loop for optimal performance
 	if(frame_scroll_mode && frameCounter == FRAME_COUNT_SCROLLING_MODE)
 	{
 		// Reset frame counter
@@ -301,11 +301,11 @@ static void updateFrameScroll()
 		// Swap palette unless palette change flag is enabled
 		if(!paletteChange)
 		{
-			memcpy(BG_PALETTE, palsPointer[currentTiles], PalsLen[currentTiles]);
+			dmaCopy(palsPointer[currentTiles], BG_PALETTE, PalsLen[currentTiles]);
 		}
 		// Swap base tile and background mapping, but not layers 1,2,3
-		memcpy(&MAP[0][0], tilesPointer[currentTiles], TilesLen[currentTiles]);
-		memcpy(&MAP[MAP_ADDRESS0][0], mapsPointer[currentTiles], MapsLen[currentTiles]);
+		dmaCopy(tilesPointer[currentTiles], &MAP[0][0], TilesLen[currentTiles]);
+		dmaCopy(mapsPointer[currentTiles], &MAP[MAP_ADDRESS0][0], MapsLen[currentTiles]);
 	}
 	else if (frameCounter == FRAME_COUNT_SCROLLING_MODE)
 	{
@@ -452,8 +452,8 @@ int main()
 				{
 					currentTiles = (currentTiles < (NTILES - 1)) ? (currentTiles+1) : 0;
 					// Remap
-					memcpy(BG_PALETTE, palsPointer[currentTiles], PalsLen[currentTiles]);
-					memcpy(&MAP[0][0], tilesPointer[currentTiles], TilesLen[currentTiles]);
+					dmaCopy(palsPointer[currentTiles], BG_PALETTE, PalsLen[currentTiles]);
+					dmaCopy(tilesPointer[currentTiles], &MAP[0][0], TilesLen[currentTiles]);
 					init_map();
 					break;
 				}
@@ -461,8 +461,8 @@ int main()
 				case KEY_L:
 				{
 					currentTiles = (currentTiles > 0) ? (currentTiles-1) : (NTILES - 1);
-					memcpy(BG_PALETTE, palsPointer[currentTiles], PalsLen[currentTiles]);
-					memcpy(&MAP[0][0], tilesPointer[currentTiles], TilesLen[currentTiles]);
+					dmaCopy(palsPointer[currentTiles], BG_PALETTE, PalsLen[currentTiles]);
+					dmaCopy(tilesPointer[currentTiles], &MAP[0][0], TilesLen[currentTiles]);
 					init_map();
 					break;
 				}
@@ -623,8 +623,8 @@ int main()
 			if (rotationMode)
 			{
 				REG_DISPCNT = MODE_2 | BG0_ON | BG1_ON | BG2_ON | BG3_ON;
-				memcpy(&MAP[MAP_ADDRESS2][0], mapsPointer[currentTiles], MapsLen[currentTiles]);
-				memcpy(&MAP[MAP_ADDRESS3][0], tilesPointer[currentTiles]+(rand()%(TilesLen[currentTiles])), MapsLen[currentTiles]);
+				dmaCopy(mapsPointer[currentTiles], &MAP[MAP_ADDRESS2][0], MapsLen[currentTiles]);
+				dmaCopy(tilesPointer[currentTiles]+(rand()%(TilesLen[currentTiles])), &MAP[MAP_ADDRESS3][0], MapsLen[currentTiles]);
 			} 
 			else 
 			{

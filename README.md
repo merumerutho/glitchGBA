@@ -35,7 +35,6 @@ To rotate them independently, select layer with B+Up/Down and enable parallax mo
 - **Hold B, press Up**: Select layer up
 - **Hold B, press Down**: Select layer down
 - **Hold Start, press B**: Enable/Disable current layer
-- **Hold Select, press B**: Enable/Disable console mode (for VBA compatibility)
 - **Select+Start**: Chaos mode (randomizes heavily)
 - **L**: Switch to previous tileset (reglitch)
 - **R**: Switch to next tileset (reglitch)
@@ -50,7 +49,7 @@ To rotate them independently, select layer with B+Up/Down and enable parallax mo
 - **Hold L, press B**: In rotation mode, zoom current layer in.
 - **Hold R, press B**: In rotation mode, zoom current layer out.
 
-Notice that 'console mode' is a compatibility option which is enabled by default. Apparently, the Visual Boy Advance emulator needs this option be disabled to work as intended.
+**Console vs Emulator Mode**: Define `CONSOLE_MODE` for real GBA hardware, otherwise the ROM is compatible for VBA and most other emulators. This affects movement calculation behavior for platform compatibility.
 
 ## Building from source:
 ### Prerequisites

@@ -67,9 +67,14 @@ def main():
         run_command(command)
         print(f"Exported .c/.h of {os.path.splitext(img_file)[0]}")
 
-    print("\nAssembling graphics.h...")
+    print("\nAssembling graphics.h and graphics.c...")
 
+    # Create graphics.h (header file with declarations only)
     with open("graphics.h", "w") as h_file:
+        # Write ifndef
+        h_file.write('#ifndef GRAPHICS_H\n')
+        h_file.write('#define GRAPHICS_H\n\n')
+        
         # Write includes
         for name in base_names:
             h_file.write(f'#include "{name}.h"\n')
@@ -78,46 +83,62 @@ def main():
         # Write NTILES define
         h_file.write(f"#define NTILES {len(base_names)}\n\n")
 
+        # Write extern declarations for arrays
+        h_file.write("// Array length declarations\n")
+        h_file.write("extern const unsigned int TilesLen[];\n")
+        h_file.write("extern const unsigned short MapsLen[];\n")
+        h_file.write("extern const unsigned short PalsLen[];\n\n")
+
+        h_file.write("// Pointer array declarations\n")
+        h_file.write("extern const unsigned int * const tilesPointer[] __attribute__((aligned(4)));\n")
+        h_file.write("extern const unsigned short * const mapsPointer[] __attribute__((aligned(4)));\n")
+        h_file.write("extern const unsigned short * const palsPointer[] __attribute__((aligned(4)));\n\n")
+        
+        # Close ifndef
+        h_file.write('#endif\n\n')
+
+    # Create graphics.c (source file with definitions)
+    with open("graphics.c", "w") as c_file:
+        # Write includes
+        c_file.write('#include "graphics.h"\n\n')
+
         # Write TilesLen array
-        h_file.write("const unsigned int TilesLen[] = {\n")
+        c_file.write("const unsigned int TilesLen[] = {\n")
         for name in base_names:
-            h_file.write(f"   {name}TilesLen,\n")
-        h_file.write("};\n\n")
+            c_file.write(f"   {name}TilesLen,\n")
+        c_file.write("};\n\n")
 
         # Write MapsLen array
-        h_file.write("const unsigned short MapsLen[] = {\n")
+        c_file.write("const unsigned short MapsLen[] = {\n")
         for name in base_names:
-            h_file.write(f"   {name}MapLen,\n")
-        h_file.write("};\n\n")
+            c_file.write(f"   {name}MapLen,\n")
+        c_file.write("};\n\n")
 
         # Write PalsLen array
-        h_file.write("const unsigned short PalsLen[] = {\n")
+        c_file.write("const unsigned short PalsLen[] = {\n")
         for name in base_names:
-            h_file.write(f"   {name}PalLen,\n")
-        h_file.write("};\n\n")
-
-        # --- Process generated C files for pointer arrays ---
+            c_file.write(f"   {name}PalLen,\n")
+        c_file.write("};\n\n")
 
         # Write tilesPointer array
-        h_file.write(f"const unsigned int * const tilesPointer[] __attribute__((aligned(4))) = {{\n")
+        c_file.write(f"const unsigned int * const tilesPointer[] __attribute__((aligned(4))) = {{\n")
         for name in base_names:
-            h_file.write(f"    {name}Tiles,\n")
-        h_file.write("};\n\n")
+            c_file.write(f"    {name}Tiles,\n")
+        c_file.write("};\n\n")
 
         # Write mapsPointer array
-        h_file.write(f"const unsigned short * const mapsPointer[] __attribute__((aligned(4))) = {{\n")
+        c_file.write(f"const unsigned short * const mapsPointer[] __attribute__((aligned(4))) = {{\n")
         for name in base_names:
-            h_file.write(f"    {name}Map,\n")
-        h_file.write("};\n\n")
+            c_file.write(f"    {name}Map,\n")
+        c_file.write("};\n\n")
 
         # Write palsPointer array
-        h_file.write(f"const unsigned short * const palsPointer[] __attribute__((aligned(4))) = {{\n")
+        c_file.write(f"const unsigned short * const palsPointer[] __attribute__((aligned(4))) = {{\n")
         for name in base_names:
-            h_file.write(f"    {name}Pal,\n")
-        h_file.write("};\n\n")
+            c_file.write(f"    {name}Pal,\n")
+        c_file.write("};\n\n")
 
-
-    print("Include file 'graphics.h' created successfully.")
+    print("Include file 'graphics.h' and source file 'graphics.c' created successfully.")
 
 if __name__ == "__main__":
     main()

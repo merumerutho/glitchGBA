@@ -64,10 +64,8 @@ void drawing_move_cursor(int dx, int dy)
 	draw_cursor_y += dy;
 	
 	// Wrap around screen edges
-	if (draw_cursor_x < 0) draw_cursor_x = DRAW_CURSOR_MAX_X;
-	if (draw_cursor_x > DRAW_CURSOR_MAX_X) draw_cursor_x = 0;
-	if (draw_cursor_y < 0) draw_cursor_y = DRAW_CURSOR_MAX_Y;
-	if (draw_cursor_y > DRAW_CURSOR_MAX_Y) draw_cursor_y = 0;
+	draw_cursor_x = (draw_cursor_x < 0) ? DRAW_CURSOR_MAX_X : (draw_cursor_x > DRAW_CURSOR_MAX_X) ? 0 : draw_cursor_x;
+	draw_cursor_y = (draw_cursor_y < 0) ? DRAW_CURSOR_MAX_Y : (draw_cursor_y > DRAW_CURSOR_MAX_Y) ? 0 : draw_cursor_y;
 }
 
 void drawing_place_tile(void)
@@ -243,10 +241,7 @@ void drawing_next_tile(void)
 	// Get the number of tiles in current tileset
 	int max_tiles = TilesLen[currentTiles] / 64; // Each tile is 64 bytes (8x8x8bit)
 	
-	draw_selected_tile++;
-	if (draw_selected_tile >= max_tiles) {
-		draw_selected_tile = 0;
-	}
+	draw_selected_tile = (++draw_selected_tile >= max_tiles) ? 0 : draw_selected_tile;
 }
 
 void drawing_prev_tile(void)
@@ -256,20 +251,14 @@ void drawing_prev_tile(void)
 	// Get the number of tiles in current tileset
 	int max_tiles = TilesLen[currentTiles] / 64; // Each tile is 64 bytes (8x8x8bit)
 	
-	draw_selected_tile--;
-	if (draw_selected_tile < 0) {
-		draw_selected_tile = max_tiles - 1;
-	}
+	draw_selected_tile = (--draw_selected_tile < 0) ? (max_tiles - 1) : draw_selected_tile;
 }
 
 void drawing_next_layer(void)
 {
 	if (!drawingMode) return;
 	
-	draw_active_layer++;
-	if (draw_active_layer > 3) {
-		draw_active_layer = 0;
-	}
+	draw_active_layer = (++draw_active_layer > 3) ? 0 : draw_active_layer;
 }
 
 void drawing_toggle_rotation(void)
@@ -568,12 +557,7 @@ void drawing_render_cursor(void)
 			drawing_get_mirror_positions(draw_cursor_x, draw_cursor_y, &mirror_x, &mirror_y, MIRROR_HORIZONTAL);
 			if (mirror_x != draw_cursor_x || mirror_y != draw_cursor_y) {
 				int mirror_map_pos = mirror_y * 32 + mirror_x;
-				u16 mirror_cursor_tile;
-				if (draw_cursor_blink < DRAW_CURSOR_BLINK_SPEED) {
-					mirror_cursor_tile = cursor_tile; // Show selected tile during blink-on
-				} else {
-					mirror_cursor_tile = draw_mirror_original_tiles[0]; // Show original tile during blink-off
-				}
+				u16 mirror_cursor_tile = (draw_cursor_blink < DRAW_CURSOR_BLINK_SPEED) ? cursor_tile : draw_mirror_original_tiles[0];
 				memcpy(layer_ptr + mirror_map_pos, &mirror_cursor_tile, sizeof(u16));
 			}
 		}
@@ -584,12 +568,7 @@ void drawing_render_cursor(void)
 			drawing_get_mirror_positions(draw_cursor_x, draw_cursor_y, &mirror_x, &mirror_y, MIRROR_VERTICAL);
 			if (mirror_x != draw_cursor_x || mirror_y != draw_cursor_y) {
 				int mirror_map_pos = mirror_y * 32 + mirror_x;
-				u16 mirror_cursor_tile;
-				if (draw_cursor_blink < DRAW_CURSOR_BLINK_SPEED) {
-					mirror_cursor_tile = cursor_tile; // Show selected tile during blink-on
-				} else {
-					mirror_cursor_tile = draw_mirror_original_tiles[1]; // Show original tile during blink-off
-				}
+				u16 mirror_cursor_tile = (draw_cursor_blink < DRAW_CURSOR_BLINK_SPEED) ? cursor_tile : draw_mirror_original_tiles[1];
 				memcpy(layer_ptr + mirror_map_pos, &mirror_cursor_tile, sizeof(u16));
 			}
 		}
@@ -600,12 +579,7 @@ void drawing_render_cursor(void)
 			drawing_get_mirror_positions(draw_cursor_x, draw_cursor_y, &mirror_x, &mirror_y, MIRROR_BOTH);
 			if (mirror_x != draw_cursor_x || mirror_y != draw_cursor_y) {
 				int mirror_map_pos = mirror_y * 32 + mirror_x;
-				u16 mirror_cursor_tile;
-				if (draw_cursor_blink < DRAW_CURSOR_BLINK_SPEED) {
-					mirror_cursor_tile = cursor_tile; // Show selected tile during blink-on
-				} else {
-					mirror_cursor_tile = draw_mirror_original_tiles[2]; // Show original tile during blink-off
-				}
+				u16 mirror_cursor_tile = (draw_cursor_blink < DRAW_CURSOR_BLINK_SPEED) ? cursor_tile : draw_mirror_original_tiles[2];
 				memcpy(layer_ptr + mirror_map_pos, &mirror_cursor_tile, sizeof(u16));
 			}
 		}

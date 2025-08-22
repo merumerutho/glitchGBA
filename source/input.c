@@ -130,13 +130,15 @@ void input_handle_single_keys(InputState* input)
 			// Swap to right tileset map 
 			case KEY_R:
 				currentTiles = (currentTiles < (NTILES - 1)) ? (currentTiles+1) : 0;
+				draw_selected_tile = 0;
 				dmaCopy(palsPointer[currentTiles], BG_PALETTE, PalsLen[currentTiles]);
-				dmaCopy(tilesPointer[currentTiles], &MAP[0][0], TilesLen[currentTiles]);
+				//dmaCopy(tilesPointer[currentTiles], &MAP[0][0], TilesLen[currentTiles]);
 				//init_map();
 				break;
 			// Swap to left tileset map
 			case KEY_L:
 				currentTiles = (currentTiles > 0) ? (currentTiles-1) : (NTILES - 1);
+				draw_selected_tile = 0;
 				dmaCopy(palsPointer[currentTiles], BG_PALETTE, PalsLen[currentTiles]);
 				dmaCopy(tilesPointer[currentTiles], &MAP[0][0], TilesLen[currentTiles]);
 				//init_map();
@@ -150,18 +152,31 @@ void input_handle_single_keys(InputState* input)
 
 void input_handle_multi_keys(InputState* input)
 {
+	// ===== GLOBAL MODE SWITCHING =====
 	// Unified mode switching: L+R cycles through Normal->Rotation->Drawing
 	if ((input->keys_held & KEY_L) && (input->keys_released & KEY_R))
 	{
 		input->multikey = TRUE;
 		cycle_app_mode();
-		if (drawingMode) {
-			paused = TRUE; // Stop movement in drawing mode
-		} else {
-			paused = FALSE; // Resume movement when exiting drawing mode
-		}
+		paused = drawingMode; // Stop movement in drawing mode, resume otherwise
 	}
-	// Toggle tile rotation in drawing mode (now uses SELECT+B)
+	
+	// ===== GLOBAL SYSTEM COMMANDS =====
+	// Reset all settings
+	else if (input->keys_held == (KEY_A + KEY_B + KEY_START + KEY_SELECT))
+	{
+		input->multikey = TRUE;
+		init();	
+	}
+	// Enable / Disable chaos mode
+	else if (input->keys_held == (KEY_START + KEY_SELECT))
+	{
+		input->multikey = TRUE;
+		vsync = !(chaos = !chaos);
+	}
+	
+	// ===== DRAWING MODE COMMANDS =====
+	// Toggle tile rotation in drawing mode (SELECT+B)
 	else if (drawingMode && (input->keys_held & KEY_SELECT) && (input->keys_released & KEY_B))
 	{
 		input->multikey = TRUE;
@@ -173,14 +188,54 @@ void input_handle_multi_keys(InputState* input)
 		input->multikey = TRUE;
 		drawing_cycle_mirror_mode();
 	}
-	// Reset status
-	else if (input->keys_held == (KEY_A + KEY_B + KEY_START + KEY_SELECT))
+	
+	// ===== ROTATION MODE COMMANDS =====
+	// Rotate right (R+A)
+	else if (rotationMode && (input->keys_held == (KEY_R + KEY_A)))
 	{
 		input->multikey = TRUE;
-		init();	
+		((bglevel % 2) == 0) ? (BG2_angular_speed -= 1) : (BG3_angular_speed -= 1);
 	}
-	// Set speeds to 0 without resetting
-	else if ((input->keys_held & KEY_A) && (input->keys_released & KEY_B))
+	// Rotate left (L+A)
+	else if (rotationMode && (input->keys_held == (KEY_L + KEY_A)))
+	{
+		input->multikey = TRUE;
+		((bglevel % 2) == 0) ? (BG2_angular_speed += 1) : (BG3_angular_speed += 1);
+	}
+	// Zoom in (R+B)
+	else if (rotationMode && (input->keys_held == (KEY_R + KEY_B)))
+	{
+		input->multikey = TRUE;
+		if ((bglevel % 2) == 0)
+		{
+			scale2 += 1;
+			BG_AFF_S2.sX = BG_AFF_S2.sY = (1<<16)/scale2;
+		} 
+		else 
+		{
+			scale3 += 1;
+			BG_AFF_S3.sX = BG_AFF_S3.sY = (1<<16)/scale3;
+		}
+	} 
+	// Zoom out (L+B)
+	else if (rotationMode && (input->keys_held == (KEY_L + KEY_B)))
+	{
+		input->multikey = TRUE;
+		if ((bglevel % 2) == 0)
+		{
+			scale2 -= 1;
+			BG_AFF_S2.sX = BG_AFF_S2.sY = (1<<16)/scale2;
+		} 
+		else 
+		{
+			scale3 -= 1;
+			BG_AFF_S3.sX = BG_AFF_S3.sY = (1<<16)/scale3;
+		}
+	}
+	
+	// ===== NORMAL MODE COMMANDS =====
+	// Set layer speeds to 0 without resetting (A+B)
+	else if (!drawingMode && (input->keys_held & KEY_A) && (input->keys_released & KEY_B))
 	{
 		input->multikey = TRUE;
 		for (int i=0; i<NUM_LAYERS; i++)
@@ -189,7 +244,7 @@ void input_handle_multi_keys(InputState* input)
 			y_speed[i] = 0;
 		}
 	}
-	// Enable / Disable selected background
+	// Enable / Disable selected background layer (START+B)
 	else if (!drawingMode && (input->keys_held & KEY_START) && (input->keys_released & KEY_B))
 	{
 		input->multikey = TRUE;
@@ -203,107 +258,32 @@ void input_handle_multi_keys(InputState* input)
 			REG_DISPCNT^=BG3_ON;
 		}
 	} 
-	// Turn remap on/off
+	// Turn tileset remap on/off (START+A)
 	else if (!drawingMode && (input->keys_held & KEY_START) && (input->keys_released & KEY_A))
 	{
 		input->multikey = TRUE;
 		remap = !remap;
 	}
-	// Turn background remap on/off		
-	else if ((input->keys_held & KEY_SELECT) && (input->keys_released & KEY_A))
+	// Turn background remap on/off (SELECT+A)
+	else if (!drawingMode && (input->keys_held & KEY_SELECT) && (input->keys_released & KEY_A))
 	{
 		input->multikey = TRUE;
 		bg_remap = !bg_remap;
 	}	
-	// Increase level of background
-	else if ((input->keys_held & KEY_B) && (input->keys_released & KEY_UP))
+	// Increase background layer level (B+UP)
+	else if (!drawingMode && (input->keys_held & KEY_B) && (input->keys_released & KEY_UP))
 	{
 		input->multikey = TRUE;
 		bglevel = (bglevel < (NUM_LAYERS-1)) ? (bglevel + 1) : 0;
 	}	
-	// Decrease level of background
-	else if ((input->keys_held & KEY_B) && (input->keys_released & KEY_DOWN))
+	// Decrease background layer level (B+DOWN)
+	else if (!drawingMode && (input->keys_held & KEY_B) && (input->keys_released & KEY_DOWN))
 	{
 		input->multikey = TRUE;
 		bglevel = (bglevel > 0) ? bglevel-1 : (NUM_LAYERS-1);
-	}	
-	// Enable / Disable chaos mode
-	else if (input->keys_held == (KEY_START + KEY_SELECT))
-	{
-		input->multikey = TRUE;
-		chaos = !chaos;
-		vsync = !chaos;
 	}
-	// In rotation mode, rotate right
-	else if ((input->keys_held == (KEY_R + KEY_A)))
-	{
-		input->multikey = TRUE;
-		if (rotationMode)
-		{
-			if ((bglevel % 2) == 0)
-			{
-				BG2_angular_speed -= 1;
-			} 
-			else 
-			{
-				BG3_angular_speed -= 1;
-			}
-		}
-	}
-	// In rotation mode, rotate left
-	else if ((input->keys_held == (KEY_L + KEY_A)))
-	{
-		input->multikey = TRUE;
-		if (rotationMode)
-		{
-			if ((bglevel % 2) == 0)
-			{
-				BG2_angular_speed += 1;
-			} 
-			else 
-			{
-				BG3_angular_speed += 1;
-			}
-		}
-	}
-	// Zoom in (rotation mode)
-	else if ((input->keys_held == (KEY_R + KEY_B)))
-	{
-		input->multikey = TRUE;
-		if (rotationMode)
-		{
-			if ((bglevel % 2) == 0)
-			{
-				scale2 += 1;
-				BG_AFF_S2.sX = BG_AFF_S2.sY = (1<<16)/scale2;
-			} 
-			else 
-			{
-				scale3 += 1;
-				BG_AFF_S3.sX = BG_AFF_S3.sY = (1<<16)/scale3;
-			}
-		}
-	} 
-	// Zoom out (rotation mode)
-	else if ((input->keys_held == (KEY_L + KEY_B)))
-	{
-		input->multikey = TRUE;
-		if (rotationMode)
-		{
-			if ((bglevel % 2) == 0)
-			{
-				scale2 -= 1;
-				BG_AFF_S2.sX = BG_AFF_S2.sY = (1<<16)/scale2;
-			} 
-			else 
-			{
-				scale3 -= 1;
-				BG_AFF_S3.sX = BG_AFF_S3.sY = (1<<16)/scale3;
-			}
-		}
-	}
-	// Enable / Disable frame_scroll_mode
-	else if ((input->keys_held & KEY_R) && (input->keys_released & KEY_RIGHT))
+	// Enable / Disable frame scroll mode (R+RIGHT)
+	else if (!drawingMode && (input->keys_held & KEY_R) && (input->keys_released & KEY_RIGHT))
 	{
 		input->multikey = TRUE;
 		frame_scroll_mode = !frame_scroll_mode;

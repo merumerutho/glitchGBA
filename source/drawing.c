@@ -13,7 +13,9 @@ extern int draw_selected_tile, draw_active_layer;
 extern int draw_cursor_blink;
 extern int draw_prev_cursor_x, draw_prev_cursor_y;
 extern u16 draw_original_tile;
+extern u16 draw_mirror_original_tiles[3];
 extern TileRotation draw_tile_rotation;
+extern MirrorMode draw_mirror_mode;
 extern int draw_key_repeat_timer, draw_last_held_keys;
 extern bool drawingMode;
 extern int currentTiles;
@@ -32,7 +34,9 @@ void drawing_init(void)
 	draw_prev_cursor_x = -1;
 	draw_prev_cursor_y = -1;
 	draw_original_tile = 0;
+	draw_mirror_original_tiles[0] = draw_mirror_original_tiles[1] = draw_mirror_original_tiles[2] = 0;
 	draw_tile_rotation = TILE_ROT_0;
+	draw_mirror_mode = MIRROR_NONE;
 	draw_key_repeat_timer = 0;
 	draw_last_held_keys = 0;
 }
@@ -70,10 +74,7 @@ void drawing_place_tile(void)
 {
 	if (!drawingMode) return;
 	
-	// Calculate map position (32x32 tiles per screen)
-	int map_pos = draw_cursor_y * 32 + draw_cursor_x;
-	
-	// Place selected tile on active layer using pointer arithmetic
+	// Get active layer pointer
 	u16 *layer_ptr;
 	switch (draw_active_layer) {
 		case 0:
@@ -104,21 +105,49 @@ void drawing_place_tile(void)
 			break;
 	}
 	
-	// Use memcpy to place the rotated tile
+	// Place tile at primary cursor position
+	int map_pos = draw_cursor_y * 32 + draw_cursor_x;
 	memcpy(layer_ptr + map_pos, &tile_entry, sizeof(u16));
 	
-	// Update the original tile so cursor rendering doesn't overwrite our placement
-	draw_original_tile = tile_entry;
+	// Place tiles at mirrored positions based on mirror mode
+	if (draw_mirror_mode != MIRROR_NONE) {
+		// Place tile at horizontal mirror
+		if (draw_mirror_mode == MIRROR_HORIZONTAL || draw_mirror_mode == MIRROR_BOTH) {
+			int mirror_x, mirror_y;
+			drawing_get_mirror_positions(draw_cursor_x, draw_cursor_y, &mirror_x, &mirror_y, MIRROR_HORIZONTAL);
+			if (mirror_x != draw_cursor_x || mirror_y != draw_cursor_y) { // Avoid duplicate placement
+				int mirror_map_pos = mirror_y * 32 + mirror_x;
+				memcpy(layer_ptr + mirror_map_pos, &tile_entry, sizeof(u16));
+			}
+		}
+		
+		// Place tile at vertical mirror
+		if (draw_mirror_mode == MIRROR_VERTICAL || draw_mirror_mode == MIRROR_BOTH) {
+			int mirror_x, mirror_y;
+			drawing_get_mirror_positions(draw_cursor_x, draw_cursor_y, &mirror_x, &mirror_y, MIRROR_VERTICAL);
+			if (mirror_x != draw_cursor_x || mirror_y != draw_cursor_y) { // Avoid duplicate placement
+				int mirror_map_pos = mirror_y * 32 + mirror_x;
+				memcpy(layer_ptr + mirror_map_pos, &tile_entry, sizeof(u16));
+			}
+		}
+		
+		// Place tile at both mirrors (diagonal mirror)
+		if (draw_mirror_mode == MIRROR_BOTH) {
+			int mirror_x, mirror_y;
+			drawing_get_mirror_positions(draw_cursor_x, draw_cursor_y, &mirror_x, &mirror_y, MIRROR_BOTH);
+			if (mirror_x != draw_cursor_x || mirror_y != draw_cursor_y) { // Avoid duplicate placement
+				int mirror_map_pos = mirror_y * 32 + mirror_x;
+				memcpy(layer_ptr + mirror_map_pos, &tile_entry, sizeof(u16));
+			}
+		}
+	}
 }
 
 void drawing_erase_tile(void)
 {
 	if (!drawingMode) return;
 	
-	// Calculate map position
-	int map_pos = draw_cursor_y * 32 + draw_cursor_x;
-	
-	// Erase tile (set to 0) on active layer using pointer arithmetic
+	// Get active layer pointer
 	u16 *layer_ptr;
 	switch (draw_active_layer) {
 		case 0:
@@ -137,12 +166,44 @@ void drawing_erase_tile(void)
 			return;
 	}
 	
-	// Use memset to clear a single tile
 	u16 zero_tile = 0;
+	
+	// Erase tile at primary cursor position
+	int map_pos = draw_cursor_y * 32 + draw_cursor_x;
 	memcpy(layer_ptr + map_pos, &zero_tile, sizeof(u16));
 	
-	// Update the original tile so cursor rendering doesn't overwrite our erasure
-	draw_original_tile = 0;
+	// Erase tiles at mirrored positions based on mirror mode
+	if (draw_mirror_mode != MIRROR_NONE) {
+		// Erase tile at horizontal mirror
+		if (draw_mirror_mode == MIRROR_HORIZONTAL || draw_mirror_mode == MIRROR_BOTH) {
+			int mirror_x, mirror_y;
+			drawing_get_mirror_positions(draw_cursor_x, draw_cursor_y, &mirror_x, &mirror_y, MIRROR_HORIZONTAL);
+			if (mirror_x != draw_cursor_x || mirror_y != draw_cursor_y) { // Avoid duplicate erasure
+				int mirror_map_pos = mirror_y * 32 + mirror_x;
+				memcpy(layer_ptr + mirror_map_pos, &zero_tile, sizeof(u16));
+			}
+		}
+		
+		// Erase tile at vertical mirror
+		if (draw_mirror_mode == MIRROR_VERTICAL || draw_mirror_mode == MIRROR_BOTH) {
+			int mirror_x, mirror_y;
+			drawing_get_mirror_positions(draw_cursor_x, draw_cursor_y, &mirror_x, &mirror_y, MIRROR_VERTICAL);
+			if (mirror_x != draw_cursor_x || mirror_y != draw_cursor_y) { // Avoid duplicate erasure
+				int mirror_map_pos = mirror_y * 32 + mirror_x;
+				memcpy(layer_ptr + mirror_map_pos, &zero_tile, sizeof(u16));
+			}
+		}
+		
+		// Erase tile at both mirrors (diagonal mirror)
+		if (draw_mirror_mode == MIRROR_BOTH) {
+			int mirror_x, mirror_y;
+			drawing_get_mirror_positions(draw_cursor_x, draw_cursor_y, &mirror_x, &mirror_y, MIRROR_BOTH);
+			if (mirror_x != draw_cursor_x || mirror_y != draw_cursor_y) { // Avoid duplicate erasure
+				int mirror_map_pos = mirror_y * 32 + mirror_x;
+				memcpy(layer_ptr + mirror_map_pos, &zero_tile, sizeof(u16));
+			}
+		}
+	}
 }
 
 void drawing_clear_layer(void)
@@ -217,6 +278,62 @@ void drawing_toggle_rotation(void)
 	
 	// Toggle between 0° and 180° rotation
 	draw_tile_rotation = (draw_tile_rotation == TILE_ROT_0) ? TILE_ROT_180 : TILE_ROT_0;
+}
+
+void drawing_cycle_mirror_mode(void)
+{
+	if (!drawingMode) return;
+	
+	// Cycle through mirror modes: None -> Horizontal -> Vertical -> Both -> None
+	switch (draw_mirror_mode) {
+		case MIRROR_NONE:
+			draw_mirror_mode = MIRROR_HORIZONTAL;
+			break;
+		case MIRROR_HORIZONTAL:
+			draw_mirror_mode = MIRROR_VERTICAL;
+			break;
+		case MIRROR_VERTICAL:
+			draw_mirror_mode = MIRROR_BOTH;
+			break;
+		case MIRROR_BOTH:
+			draw_mirror_mode = MIRROR_NONE;
+			break;
+	}
+}
+
+void drawing_get_mirror_positions(int x, int y, int *mirror_x, int *mirror_y, MirrorMode mode)
+{
+	// Calculate center of the mapping space (30x20 tiles)
+	int center_x = DRAW_CURSOR_MAX_X / 2;  // 15
+	int center_y = DRAW_CURSOR_MAX_Y / 2;  // 9 (for 20 tile height)
+	
+	switch (mode) {
+		case MIRROR_NONE:
+			*mirror_x = x;
+			*mirror_y = y;
+			break;
+		case MIRROR_HORIZONTAL:
+			// Mirror horizontally around center
+			*mirror_x = center_x + (center_x - x);
+			*mirror_y = y;
+			break;
+		case MIRROR_VERTICAL:
+			// Mirror vertically around center  
+			*mirror_x = x;
+			*mirror_y = center_y + (center_y - y);
+			break;
+		case MIRROR_BOTH:
+			// Mirror both horizontally and vertically
+			*mirror_x = center_x + (center_x - x);
+			*mirror_y = center_y + (center_y - y);
+			break;
+	}
+	
+	// Ensure mirrored coordinates stay within bounds
+	if (*mirror_x < 0) *mirror_x = 0;
+	if (*mirror_x > DRAW_CURSOR_MAX_X) *mirror_x = DRAW_CURSOR_MAX_X;
+	if (*mirror_y < 0) *mirror_y = 0;
+	if (*mirror_y > DRAW_CURSOR_MAX_Y) *mirror_y = DRAW_CURSOR_MAX_Y;
 }
 
 void drawing_handle_continuous_input(int keys_held)
@@ -337,24 +454,92 @@ void drawing_render_cursor(void)
 			return;
 	}
 	
-	// If cursor moved, restore the original tile at the previous position
+	// If cursor moved, restore original tiles at all previous positions
 	if (draw_prev_cursor_x != -1 && draw_prev_cursor_y != -1 && 
 		(draw_prev_cursor_x != draw_cursor_x || draw_prev_cursor_y != draw_cursor_y)) {
+		
+		// Restore primary position
 		int prev_map_pos = draw_prev_cursor_y * 32 + draw_prev_cursor_x;
 		memcpy(layer_ptr + prev_map_pos, &draw_original_tile, sizeof(u16));
+		
+		// Restore mirrored positions using their saved original tiles
+		if (draw_mirror_mode != MIRROR_NONE) {
+			// Restore horizontal mirror
+			if (draw_mirror_mode == MIRROR_HORIZONTAL || draw_mirror_mode == MIRROR_BOTH) {
+				int mirror_x, mirror_y;
+				drawing_get_mirror_positions(draw_prev_cursor_x, draw_prev_cursor_y, &mirror_x, &mirror_y, MIRROR_HORIZONTAL);
+				if (mirror_x != draw_prev_cursor_x || mirror_y != draw_prev_cursor_y) {
+					int mirror_map_pos = mirror_y * 32 + mirror_x;
+					memcpy(layer_ptr + mirror_map_pos, &draw_mirror_original_tiles[0], sizeof(u16));
+				}
+			}
+			
+			// Restore vertical mirror  
+			if (draw_mirror_mode == MIRROR_VERTICAL || draw_mirror_mode == MIRROR_BOTH) {
+				int mirror_x, mirror_y;
+				drawing_get_mirror_positions(draw_prev_cursor_x, draw_prev_cursor_y, &mirror_x, &mirror_y, MIRROR_VERTICAL);
+				if (mirror_x != draw_prev_cursor_x || mirror_y != draw_prev_cursor_y) {
+					int mirror_map_pos = mirror_y * 32 + mirror_x;
+					memcpy(layer_ptr + mirror_map_pos, &draw_mirror_original_tiles[1], sizeof(u16));
+				}
+			}
+			
+			// Restore diagonal mirror
+			if (draw_mirror_mode == MIRROR_BOTH) {
+				int mirror_x, mirror_y;
+				drawing_get_mirror_positions(draw_prev_cursor_x, draw_prev_cursor_y, &mirror_x, &mirror_y, MIRROR_BOTH);
+				if (mirror_x != draw_prev_cursor_x || mirror_y != draw_prev_cursor_y) {
+					int mirror_map_pos = mirror_y * 32 + mirror_x;
+					memcpy(layer_ptr + mirror_map_pos, &draw_mirror_original_tiles[2], sizeof(u16));
+				}
+			}
+		}
 	}
 	
-	// Calculate current map position
+	// Calculate current map position and save original tiles if cursor moved
 	int map_pos = draw_cursor_y * 32 + draw_cursor_x;
-	
-	// If cursor moved or this is the first render, save the original tile
 	if (draw_prev_cursor_x != draw_cursor_x || draw_prev_cursor_y != draw_cursor_y) {
+		// Save primary position original tile
 		memcpy(&draw_original_tile, layer_ptr + map_pos, sizeof(u16));
+		
+		// Save mirror positions original tiles
+		if (draw_mirror_mode != MIRROR_NONE) {
+			// Save horizontal mirror original
+			if (draw_mirror_mode == MIRROR_HORIZONTAL || draw_mirror_mode == MIRROR_BOTH) {
+				int mirror_x, mirror_y;
+				drawing_get_mirror_positions(draw_cursor_x, draw_cursor_y, &mirror_x, &mirror_y, MIRROR_HORIZONTAL);
+				if (mirror_x != draw_cursor_x || mirror_y != draw_cursor_y) {
+					int mirror_map_pos = mirror_y * 32 + mirror_x;
+					memcpy(&draw_mirror_original_tiles[0], layer_ptr + mirror_map_pos, sizeof(u16));
+				}
+			}
+			
+			// Save vertical mirror original
+			if (draw_mirror_mode == MIRROR_VERTICAL || draw_mirror_mode == MIRROR_BOTH) {
+				int mirror_x, mirror_y;
+				drawing_get_mirror_positions(draw_cursor_x, draw_cursor_y, &mirror_x, &mirror_y, MIRROR_VERTICAL);
+				if (mirror_x != draw_cursor_x || mirror_y != draw_cursor_y) {
+					int mirror_map_pos = mirror_y * 32 + mirror_x;
+					memcpy(&draw_mirror_original_tiles[1], layer_ptr + mirror_map_pos, sizeof(u16));
+				}
+			}
+			
+			// Save diagonal mirror original
+			if (draw_mirror_mode == MIRROR_BOTH) {
+				int mirror_x, mirror_y;
+				drawing_get_mirror_positions(draw_cursor_x, draw_cursor_y, &mirror_x, &mirror_y, MIRROR_BOTH);
+				if (mirror_x != draw_cursor_x || mirror_y != draw_cursor_y) {
+					int mirror_map_pos = mirror_y * 32 + mirror_x;
+					memcpy(&draw_mirror_original_tiles[2], layer_ptr + mirror_map_pos, sizeof(u16));
+				}
+			}
+		}
+		
 		draw_prev_cursor_x = draw_cursor_x;
 		draw_prev_cursor_y = draw_cursor_y;
 	}
 	
-	// Create cursor indicator by alternating between selected tile and original tile
+	// Create cursor tile based on blink state
 	u16 cursor_tile;
 	if (draw_cursor_blink < DRAW_CURSOR_BLINK_SPEED) {
 		// Show selected tile with current rotation applied
@@ -369,9 +554,60 @@ void drawing_render_cursor(void)
 				break;
 		}
 	} else {
-		cursor_tile = draw_original_tile; // Show original tile
+		cursor_tile = draw_original_tile; // Show original tile during blink-off
 	}
 	
-	// Place cursor tile on active layer (temporarily)
+	// Render cursor at primary position (temporarily)
 	memcpy(layer_ptr + map_pos, &cursor_tile, sizeof(u16));
+	
+	// Render mirrored cursors based on mirror mode
+	if (draw_mirror_mode != MIRROR_NONE) {
+		// Calculate and render horizontal mirror
+		if (draw_mirror_mode == MIRROR_HORIZONTAL || draw_mirror_mode == MIRROR_BOTH) {
+			int mirror_x, mirror_y;
+			drawing_get_mirror_positions(draw_cursor_x, draw_cursor_y, &mirror_x, &mirror_y, MIRROR_HORIZONTAL);
+			if (mirror_x != draw_cursor_x || mirror_y != draw_cursor_y) {
+				int mirror_map_pos = mirror_y * 32 + mirror_x;
+				u16 mirror_cursor_tile;
+				if (draw_cursor_blink < DRAW_CURSOR_BLINK_SPEED) {
+					mirror_cursor_tile = cursor_tile; // Show selected tile during blink-on
+				} else {
+					mirror_cursor_tile = draw_mirror_original_tiles[0]; // Show original tile during blink-off
+				}
+				memcpy(layer_ptr + mirror_map_pos, &mirror_cursor_tile, sizeof(u16));
+			}
+		}
+		
+		// Calculate and render vertical mirror
+		if (draw_mirror_mode == MIRROR_VERTICAL || draw_mirror_mode == MIRROR_BOTH) {
+			int mirror_x, mirror_y;
+			drawing_get_mirror_positions(draw_cursor_x, draw_cursor_y, &mirror_x, &mirror_y, MIRROR_VERTICAL);
+			if (mirror_x != draw_cursor_x || mirror_y != draw_cursor_y) {
+				int mirror_map_pos = mirror_y * 32 + mirror_x;
+				u16 mirror_cursor_tile;
+				if (draw_cursor_blink < DRAW_CURSOR_BLINK_SPEED) {
+					mirror_cursor_tile = cursor_tile; // Show selected tile during blink-on
+				} else {
+					mirror_cursor_tile = draw_mirror_original_tiles[1]; // Show original tile during blink-off
+				}
+				memcpy(layer_ptr + mirror_map_pos, &mirror_cursor_tile, sizeof(u16));
+			}
+		}
+		
+		// Calculate and render both mirrors (diagonal mirror)
+		if (draw_mirror_mode == MIRROR_BOTH) {
+			int mirror_x, mirror_y;
+			drawing_get_mirror_positions(draw_cursor_x, draw_cursor_y, &mirror_x, &mirror_y, MIRROR_BOTH);
+			if (mirror_x != draw_cursor_x || mirror_y != draw_cursor_y) {
+				int mirror_map_pos = mirror_y * 32 + mirror_x;
+				u16 mirror_cursor_tile;
+				if (draw_cursor_blink < DRAW_CURSOR_BLINK_SPEED) {
+					mirror_cursor_tile = cursor_tile; // Show selected tile during blink-on
+				} else {
+					mirror_cursor_tile = draw_mirror_original_tiles[2]; // Show original tile during blink-off
+				}
+				memcpy(layer_ptr + mirror_map_pos, &mirror_cursor_tile, sizeof(u16));
+			}
+		}
+	}
 }

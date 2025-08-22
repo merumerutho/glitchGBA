@@ -95,7 +95,9 @@ int draw_cursor_blink = 0;      // Cursor blink animation counter
 int draw_prev_cursor_x = -1;    // Previous cursor X position
 int draw_prev_cursor_y = -1;    // Previous cursor Y position
 u16 draw_original_tile = 0;     // Original tile at cursor position
+u16 draw_mirror_original_tiles[3] = {0, 0, 0}; // Original tiles at mirror positions [horizontal, vertical, diagonal]
 TileRotation draw_tile_rotation = TILE_ROT_0; // Current tile rotation
+MirrorMode draw_mirror_mode = MIRROR_NONE;    // Current mirror mode
 
 // Key repeat timing state
 int draw_key_repeat_timer = 0;  // Timer for key repeat functionality

@@ -18,6 +18,7 @@ extern BGAffineSource BG_AFF_S2, BG_AFF_S3;
 // Forward declaration for reset function
 extern void init(void);
 extern void cycle_app_mode(void);
+extern void drawing_cycle_mirror_mode(void);
 
 void input_init(void)
 {
@@ -166,6 +167,12 @@ void input_handle_multi_keys(InputState* input)
 		input->multikey = TRUE;
 		drawing_toggle_rotation();
 	}
+	// Cycle through mirror modes in drawing mode (START+B)
+	else if (drawingMode && (input->keys_held & KEY_START) && (input->keys_released & KEY_B))
+	{
+		input->multikey = TRUE;
+		drawing_cycle_mirror_mode();
+	}
 	// Reset status
 	else if (input->keys_held == (KEY_A + KEY_B + KEY_START + KEY_SELECT))
 	{
@@ -183,7 +190,7 @@ void input_handle_multi_keys(InputState* input)
 		}
 	}
 	// Enable / Disable selected background
-	else if ((input->keys_held & KEY_START) && (input->keys_released & KEY_B))
+	else if (!drawingMode && (input->keys_held & KEY_START) && (input->keys_released & KEY_B))
 	{
 		input->multikey = TRUE;
 		if (bglevel==0){
@@ -197,7 +204,7 @@ void input_handle_multi_keys(InputState* input)
 		}
 	} 
 	// Turn remap on/off
-	else if ((input->keys_held & KEY_START) && (input->keys_released & KEY_A))
+	else if (!drawingMode && (input->keys_held & KEY_START) && (input->keys_released & KEY_A))
 	{
 		input->multikey = TRUE;
 		remap = !remap;

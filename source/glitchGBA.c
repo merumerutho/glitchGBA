@@ -67,7 +67,6 @@ bool frame_scroll_mode = FALSE; // Automatic tileset cycling
 
 // Legacy mode flags (derived from currentMode)
 bool rotationMode = FALSE;      // Enable rotation/scaling mode
-bool drawingMode = FALSE;       // Drawing mode toggle
 
 // Frame counter
 int frameCounter=0;
@@ -85,23 +84,32 @@ BGAffineDest BG_AFF_D2;                                          // BG2 dest par
 BGAffineSource BG_AFF_S3 = {0, 0, 0, 0, 1<<8, 1<<8, 0x0000};  // BG3 source params
 BGAffineDest BG_AFF_D3;                                          // BG3 dest params
 
-// ===== DRAWING MODE STATE =====
-// Drawing cursor position (in tile coordinates)
-int draw_cursor_x = 0;          // Cursor X position (0-29 for 240/8)
-int draw_cursor_y = 0;          // Cursor Y position (0-19 for 160/8)
-int draw_selected_tile = 0;     // Currently selected tile from tileset
-int draw_active_layer = 0;      // Currently active drawing layer (0-3)
-int draw_cursor_blink = 0;      // Cursor blink animation counter
-int draw_prev_cursor_x = -1;    // Previous cursor X position
-int draw_prev_cursor_y = -1;    // Previous cursor Y position
-u16 draw_original_tile = 0;     // Original tile at cursor position
-u16 draw_mirror_original_tiles[3] = {0, 0, 0}; // Original tiles at mirror positions [horizontal, vertical, diagonal]
-TileRotation draw_tile_rotation = TILE_ROT_0; // Current tile rotation
-MirrorMode draw_mirror_mode = MIRROR_NONE;    // Current mirror mode
-
-// Key repeat timing state
-int draw_key_repeat_timer = 0;  // Timer for key repeat functionality
-int draw_last_held_keys = 0;    // Previously held keys for repeat detection
+// ===== DRAWING SYSTEM STATE =====
+// Unified drawing system state
+DrawingSystem drawing = {
+    .cursor = {
+        .x = 0,
+        .y = 0,
+        .prev_x = -1,
+        .prev_y = -1,
+        .blink_counter = 0
+    },
+    .tile = {
+        .selected_tile = 0,
+        .active_layer = 0,
+        .rotation = TILE_ROT_0,
+        .mirror_mode = MIRROR_NONE
+    },
+    .input = {
+        .repeat_timer = 0,
+        .last_held_keys = 0
+    },
+    .backup = {
+        .primary = 0,
+        .mirrors = {0, 0, 0}
+    },
+    .enabled = FALSE
+};
 	
 
 //
@@ -133,7 +141,7 @@ void cycle_app_mode() {
 void update_mode_flags() {
     // Update legacy boolean flags based on current mode
     rotationMode = (currentMode == MODE_ROTATION);
-    drawingMode = (currentMode == MODE_DRAWING);
+    drawing.enabled = (currentMode == MODE_DRAWING);
     
     // Update display control register based on mode
     switch (currentMode) {
@@ -149,7 +157,7 @@ void update_mode_flags() {
             // Drawing mode uses standard tiled mode
             REG_DISPCNT = MODE_0 | BG0_ON | BG1_ON | BG2_ON | BG3_ON;
             // Initialize drawing state when entering drawing mode
-            if (drawingMode) {
+            if (drawing.enabled) {
                 drawing_init();
             }
             break;
@@ -182,7 +190,7 @@ void init()
 	remap = FALSE;
 	parallax = FALSE;
 	frame_scroll_mode = FALSE;
-	drawingMode = FALSE;
+	drawing.enabled = FALSE;
 	frameCounter=0;
 	paused = FALSE;
 	vsync = TRUE;
@@ -245,7 +253,7 @@ int main()
 		/* 
 			UPDATE DRAW SECTION
 		*/
-		if (!drawingMode) {
+		if (!drawing.enabled) {
 			// Normal animation updates only when not in drawing mode
 			animation_update_screen_movement();
 			animation_update_remap();

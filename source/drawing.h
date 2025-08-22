@@ -26,21 +26,46 @@ typedef enum {
     MIRROR_BOTH            // Cursor mirrored both horizontally and vertically
 } MirrorMode;
 
-// Drawing mode state
-extern int draw_cursor_x;
-extern int draw_cursor_y;
-extern int draw_selected_tile;
-extern int draw_active_layer;
-extern int draw_cursor_blink;
-extern int draw_prev_cursor_x;
-extern int draw_prev_cursor_y;
-extern u16 draw_original_tile;
-extern u16 draw_mirror_original_tiles[3]; // Original tiles at mirror positions [horizontal, vertical, diagonal]
-extern TileRotation draw_tile_rotation;
-extern MirrorMode draw_mirror_mode;
-extern int draw_key_repeat_timer;
-extern int draw_last_held_keys;
-extern bool drawingMode;
+// Cursor position and visual state
+typedef struct {
+    int x;                 // Current cursor X position (0-30)
+    int y;                 // Current cursor Y position (0-19)
+    int prev_x;            // Previous cursor X position
+    int prev_y;            // Previous cursor Y position
+    int blink_counter;     // Blink animation counter
+} CursorState;
+
+// Tile and layer selection state
+typedef struct {
+    int selected_tile;     // Currently selected tile from tileset
+    int active_layer;      // Currently active drawing layer (0-3)
+    TileRotation rotation; // Current tile rotation mode
+    MirrorMode mirror_mode; // Current mirror mode
+} TileState;
+
+// Input handling state for continuous input
+typedef struct {
+    int repeat_timer;      // Timer for key repeat functionality
+    int last_held_keys;    // Previously held keys for repeat detection
+} DrawingInputState;
+
+// Original tiles backup for cursor rendering
+typedef struct {
+    u16 primary;           // Original tile at primary cursor position
+    u16 mirrors[3];        // Original tiles at mirror positions [horizontal, vertical, diagonal]
+} OriginalTiles;
+
+// Main drawing system state
+typedef struct {
+    CursorState cursor;
+    TileState tile;
+    DrawingInputState input;
+    OriginalTiles backup;
+    bool enabled;          // Drawing mode toggle
+} DrawingSystem;
+
+// Global drawing system instance
+extern DrawingSystem drawing;
 
 // Function declarations
 void drawing_init(void);

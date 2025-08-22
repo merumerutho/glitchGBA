@@ -9,7 +9,8 @@
 
 // External references to global state
 extern bool paused, vsync, parallax, paletteChange, chaos;
-extern bool remap, bg_remap, frame_scroll_mode, rotationMode, drawingMode;
+extern bool remap, bg_remap, frame_scroll_mode, rotationMode;
+extern DrawingSystem drawing;
 extern int x_speed[4], y_speed[4];
 extern int bglevel, currentTiles;
 extern int scale2, scale3, BG2_angular_speed, BG3_angular_speed;
@@ -44,14 +45,14 @@ void input_update(InputState* input)
 void input_handle_single_keys(InputState* input)
 {
 	// Handle continuous input for drawing mode (always check held keys)
-	if (drawingMode) {
+	if (drawing.enabled) {
 		drawing_handle_continuous_input(input->keys_held);
 	}
 	
 	if (!input->keys_held && input->multikey == FALSE) 
 	{	
 		// Drawing mode has different controls
-		if (drawingMode) {
+		if (drawing.enabled) {
 			switch(input->keys_released)
 			{
 				// Place tile
@@ -130,7 +131,7 @@ void input_handle_single_keys(InputState* input)
 			// Swap to right tileset map 
 			case KEY_R:
 				currentTiles = (currentTiles < (NTILES - 1)) ? (currentTiles+1) : 0;
-				draw_selected_tile = 0;
+				drawing.tile.selected_tile = 0;
 				dmaCopy(palsPointer[currentTiles], BG_PALETTE, PalsLen[currentTiles]);
 				//dmaCopy(tilesPointer[currentTiles], &MAP[0][0], TilesLen[currentTiles]);
 				//init_map();
@@ -138,7 +139,7 @@ void input_handle_single_keys(InputState* input)
 			// Swap to left tileset map
 			case KEY_L:
 				currentTiles = (currentTiles > 0) ? (currentTiles-1) : (NTILES - 1);
-				draw_selected_tile = 0;
+				drawing.tile.selected_tile = 0;
 				dmaCopy(palsPointer[currentTiles], BG_PALETTE, PalsLen[currentTiles]);
 				dmaCopy(tilesPointer[currentTiles], &MAP[0][0], TilesLen[currentTiles]);
 				//init_map();
@@ -158,7 +159,7 @@ void input_handle_multi_keys(InputState* input)
 	{
 		input->multikey = TRUE;
 		cycle_app_mode();
-		paused = drawingMode; // Stop movement in drawing mode, resume otherwise
+		paused = drawing.enabled; // Stop movement in drawing mode, resume otherwise
 	}
 	
 	// ===== GLOBAL SYSTEM COMMANDS =====
@@ -177,13 +178,13 @@ void input_handle_multi_keys(InputState* input)
 	
 	// ===== DRAWING MODE COMMANDS =====
 	// Toggle tile rotation in drawing mode (SELECT+B)
-	else if (drawingMode && (input->keys_held & KEY_SELECT) && (input->keys_released & KEY_B))
+	else if (drawing.enabled && (input->keys_held & KEY_SELECT) && (input->keys_released & KEY_B))
 	{
 		input->multikey = TRUE;
 		drawing_toggle_rotation();
 	}
 	// Cycle through mirror modes in drawing mode (START+B)
-	else if (drawingMode && (input->keys_held & KEY_START) && (input->keys_released & KEY_B))
+	else if (drawing.enabled && (input->keys_held & KEY_START) && (input->keys_released & KEY_B))
 	{
 		input->multikey = TRUE;
 		drawing_cycle_mirror_mode();
@@ -235,7 +236,7 @@ void input_handle_multi_keys(InputState* input)
 	
 	// ===== NORMAL MODE COMMANDS =====
 	// Set layer speeds to 0 without resetting (A+B)
-	else if (!drawingMode && (input->keys_held & KEY_A) && (input->keys_released & KEY_B))
+	else if (!drawing.enabled && (input->keys_held & KEY_A) && (input->keys_released & KEY_B))
 	{
 		input->multikey = TRUE;
 		for (int i=0; i<NUM_LAYERS; i++)
@@ -245,7 +246,7 @@ void input_handle_multi_keys(InputState* input)
 		}
 	}
 	// Enable / Disable selected background layer (START+B)
-	else if (!drawingMode && (input->keys_held & KEY_START) && (input->keys_released & KEY_B))
+	else if (!drawing.enabled && (input->keys_held & KEY_START) && (input->keys_released & KEY_B))
 	{
 		input->multikey = TRUE;
 		if (bglevel==0){
@@ -259,31 +260,31 @@ void input_handle_multi_keys(InputState* input)
 		}
 	} 
 	// Turn tileset remap on/off (START+A)
-	else if (!drawingMode && (input->keys_held & KEY_START) && (input->keys_released & KEY_A))
+	else if (!drawing.enabled && (input->keys_held & KEY_START) && (input->keys_released & KEY_A))
 	{
 		input->multikey = TRUE;
 		remap = !remap;
 	}
 	// Turn background remap on/off (SELECT+A)
-	else if (!drawingMode && (input->keys_held & KEY_SELECT) && (input->keys_released & KEY_A))
+	else if (!drawing.enabled && (input->keys_held & KEY_SELECT) && (input->keys_released & KEY_A))
 	{
 		input->multikey = TRUE;
 		bg_remap = !bg_remap;
 	}	
 	// Increase background layer level (B+UP)
-	else if (!drawingMode && (input->keys_held & KEY_B) && (input->keys_released & KEY_UP))
+	else if (!drawing.enabled && (input->keys_held & KEY_B) && (input->keys_released & KEY_UP))
 	{
 		input->multikey = TRUE;
 		bglevel = (bglevel < (NUM_LAYERS-1)) ? (bglevel + 1) : 0;
 	}	
 	// Decrease background layer level (B+DOWN)
-	else if (!drawingMode && (input->keys_held & KEY_B) && (input->keys_released & KEY_DOWN))
+	else if (!drawing.enabled && (input->keys_held & KEY_B) && (input->keys_released & KEY_DOWN))
 	{
 		input->multikey = TRUE;
 		bglevel = (bglevel > 0) ? bglevel-1 : (NUM_LAYERS-1);
 	}
 	// Enable / Disable frame scroll mode (R+RIGHT)
-	else if (!drawingMode && (input->keys_held & KEY_R) && (input->keys_released & KEY_RIGHT))
+	else if (!drawing.enabled && (input->keys_held & KEY_R) && (input->keys_released & KEY_RIGHT))
 	{
 		input->multikey = TRUE;
 		frame_scroll_mode = !frame_scroll_mode;

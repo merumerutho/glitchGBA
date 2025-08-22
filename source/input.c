@@ -1,6 +1,7 @@
 #include "input.h"
 #include "display.h"
 #include "graphics.h"
+#include "drawing.h"
 #include <stdlib.h>
 
 #define TRUE 1
@@ -8,7 +9,7 @@
 
 // External references to global state
 extern bool paused, vsync, parallax, paletteChange, chaos;
-extern bool remap, bg_remap, frame_scroll_mode, rotationMode;
+extern bool remap, bg_remap, frame_scroll_mode, rotationMode, drawingMode;
 extern int x_speed[4], y_speed[4];
 extern int bglevel, currentTiles;
 extern int scale2, scale3, BG2_angular_speed, BG3_angular_speed;
@@ -16,6 +17,7 @@ extern BGAffineSource BG_AFF_S2, BG_AFF_S3;
 
 // Forward declaration for reset function
 extern void init(void);
+extern void cycle_app_mode(void);
 
 void input_init(void)
 {
@@ -40,10 +42,60 @@ void input_update(InputState* input)
 
 void input_handle_single_keys(InputState* input)
 {
+	// Handle continuous input for drawing mode (always check held keys)
+	if (drawingMode) {
+		drawing_handle_continuous_input(input->keys_held);
+	}
+	
 	if (!input->keys_held && input->multikey == FALSE) 
 	{	
-		switch(input->keys_released)
-		{
+		// Drawing mode has different controls
+		if (drawingMode) {
+			switch(input->keys_released)
+			{
+				// Place tile
+				case KEY_A:
+					drawing_place_tile();
+					break;
+				// Erase tile
+				case KEY_B:
+					drawing_erase_tile();
+					break;
+				// Move cursor
+				case KEY_LEFT:
+					drawing_move_cursor(-1, 0);
+					break;
+				case KEY_RIGHT:
+					drawing_move_cursor(1, 0);
+					break;
+				case KEY_UP:
+					drawing_move_cursor(0, -1);
+					break;
+				case KEY_DOWN:
+					drawing_move_cursor(0, 1);
+					break;
+				// Next tile
+				case KEY_R:
+					drawing_next_tile();
+					break;
+				// Previous tile
+				case KEY_L:
+					drawing_prev_tile();
+					break;
+				// Next layer
+				case KEY_SELECT:
+					drawing_next_layer();
+					break;
+				// Clear current layer
+				case KEY_START:
+					drawing_clear_layer();
+					break;
+				default:
+					break;
+			}
+		} else {
+			// Normal mode controls
+			switch(input->keys_released){
 			// Pause / unpause
 			case KEY_A:
 				paused = !paused;
@@ -79,25 +131,43 @@ void input_handle_single_keys(InputState* input)
 				currentTiles = (currentTiles < (NTILES - 1)) ? (currentTiles+1) : 0;
 				dmaCopy(palsPointer[currentTiles], BG_PALETTE, PalsLen[currentTiles]);
 				dmaCopy(tilesPointer[currentTiles], &MAP[0][0], TilesLen[currentTiles]);
-				init_map();
+				//init_map();
 				break;
 			// Swap to left tileset map
 			case KEY_L:
 				currentTiles = (currentTiles > 0) ? (currentTiles-1) : (NTILES - 1);
 				dmaCopy(palsPointer[currentTiles], BG_PALETTE, PalsLen[currentTiles]);
 				dmaCopy(tilesPointer[currentTiles], &MAP[0][0], TilesLen[currentTiles]);
-				init_map();
+				//init_map();
 				break;
 			default:
 				break;
+			}
 		}
 	}
 }
 
 void input_handle_multi_keys(InputState* input)
 {
+	// Unified mode switching: L+R cycles through Normal->Rotation->Drawing
+	if ((input->keys_held & KEY_L) && (input->keys_released & KEY_R))
+	{
+		input->multikey = TRUE;
+		cycle_app_mode();
+		if (drawingMode) {
+			paused = TRUE; // Stop movement in drawing mode
+		} else {
+			paused = FALSE; // Resume movement when exiting drawing mode
+		}
+	}
+	// Toggle tile rotation in drawing mode (now uses SELECT+B)
+	else if (drawingMode && (input->keys_held & KEY_SELECT) && (input->keys_released & KEY_B))
+	{
+		input->multikey = TRUE;
+		drawing_toggle_rotation();
+	}
 	// Reset status
-	if (input->keys_held == (KEY_A + KEY_B + KEY_START + KEY_SELECT))
+	else if (input->keys_held == (KEY_A + KEY_B + KEY_START + KEY_SELECT))
 	{
 		input->multikey = TRUE;
 		init();	
@@ -231,22 +301,4 @@ void input_handle_multi_keys(InputState* input)
 		input->multikey = TRUE;
 		frame_scroll_mode = !frame_scroll_mode;
 	}	
-	// Switch rotation mode - normal mode
-	else if ((input->keys_held & KEY_L) && (input->keys_released & KEY_R)) 
-	{
-		input->multikey = TRUE;
-		rotationMode=!rotationMode;
-		if (rotationMode)
-		{
-			REG_DISPCNT = MODE_2 | BG0_ON | BG1_ON | BG2_ON | BG3_ON;
-			dmaCopy(mapsPointer[currentTiles], &MAP[MAP_ADDRESS2][0], MapsLen[currentTiles]);
-			dmaCopy(tilesPointer[currentTiles]+(rand()%(TilesLen[currentTiles])), &MAP[MAP_ADDRESS3][0], MapsLen[currentTiles]);
-		} 
-		else 
-		{
-			REG_DISPCNT = BG0_ON | BG1_ON | BG2_ON | BG3_ON;
-			init_map();
-			bglevel = 0;
-		}
-	}
 }

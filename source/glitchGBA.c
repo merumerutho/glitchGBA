@@ -28,6 +28,7 @@
 #include "display.h"
 #include "input.h"
 #include "animation.h"
+#include "drawing.h"
 
 // ===== GLOBAL STATE VARIABLES =====
 // Display and timing control
@@ -45,6 +46,15 @@ int moveRateY[NUM_LAYERS] = {0,0,0,0};   // Platform-adjusted Y rates
 int currentTiles = 0;  // Currently active tileset index
 int bglevel = 0;       // Currently selected background layer
 
+// Application modes
+typedef enum {
+    MODE_NORMAL,    // Standard glitch effects mode
+    MODE_ROTATION,  // Rotation/scaling mode
+    MODE_DRAWING    // Drawing mode
+} AppMode;
+
+AppMode currentMode = MODE_NORMAL;  // Current application mode
+
 // Application state flags
 bool paused = FALSE;            // Pause/resume animation
 bool paletteChange = FALSE;     // Dynamic palette modification
@@ -55,13 +65,12 @@ bool bg_remap = FALSE;          // Background layer remapping (CPU intensive)
 bool chaos = FALSE;             // Chaos mode - extreme randomization
 bool frame_scroll_mode = FALSE; // Automatic tileset cycling
 
+// Legacy mode flags (derived from currentMode)
+bool rotationMode = FALSE;      // Enable rotation/scaling mode
+bool drawingMode = FALSE;       // Drawing mode toggle
+
 // Frame counter
 int frameCounter=0;
-
-// (moveRate arrays moved above with other layer movement variables)
-
-// Rotation mode state
-bool rotationMode = FALSE;      // Enable rotation/scaling mode
 
 // Rotation mode scaling and speed
 int scale2 = 1<<8;              // BG2 zoom scale (fixed point)
@@ -75,12 +84,75 @@ BGAffineSource BG_AFF_S2 = {0, 0, 0, 0, 1<<8, 1<<8, 0x0000};  // BG2 source para
 BGAffineDest BG_AFF_D2;                                          // BG2 dest params
 BGAffineSource BG_AFF_S3 = {0, 0, 0, 0, 1<<8, 1<<8, 0x0000};  // BG3 source params
 BGAffineDest BG_AFF_D3;                                          // BG3 dest params
+
+// ===== DRAWING MODE STATE =====
+// Drawing cursor position (in tile coordinates)
+int draw_cursor_x = 0;          // Cursor X position (0-29 for 240/8)
+int draw_cursor_y = 0;          // Cursor Y position (0-19 for 160/8)
+int draw_selected_tile = 0;     // Currently selected tile from tileset
+int draw_active_layer = 0;      // Currently active drawing layer (0-3)
+int draw_cursor_blink = 0;      // Cursor blink animation counter
+int draw_prev_cursor_x = -1;    // Previous cursor X position
+int draw_prev_cursor_y = -1;    // Previous cursor Y position
+u16 draw_original_tile = 0;     // Original tile at cursor position
+TileRotation draw_tile_rotation = TILE_ROT_0; // Current tile rotation
+
+// Key repeat timing state
+int draw_key_repeat_timer = 0;  // Timer for key repeat functionality
+int draw_last_held_keys = 0;    // Previously held keys for repeat detection
 	
 
 //
 
 void init();
+void cycle_app_mode();
+void update_mode_flags();
 int main();
+
+// Unified mode switching system
+void cycle_app_mode() {
+    // Cycle through: Normal -> Rotation -> Drawing -> Normal
+    switch (currentMode) {
+        case MODE_NORMAL:
+            currentMode = MODE_ROTATION;
+            break;
+        case MODE_ROTATION:
+            currentMode = MODE_DRAWING;
+            break;
+        case MODE_DRAWING:
+            currentMode = MODE_NORMAL;
+            break;
+    }
+    
+    // Update legacy mode flags and display settings
+    update_mode_flags();
+}
+
+void update_mode_flags() {
+    // Update legacy boolean flags based on current mode
+    rotationMode = (currentMode == MODE_ROTATION);
+    drawingMode = (currentMode == MODE_DRAWING);
+    
+    // Update display control register based on mode
+    switch (currentMode) {
+        case MODE_NORMAL:
+            // Standard tiled mode
+            REG_DISPCNT = MODE_0 | BG0_ON | BG1_ON | BG2_ON | BG3_ON;
+            break;
+        case MODE_ROTATION:
+            // Rotation/scaling mode - preserve existing tileset mapping
+            REG_DISPCNT = MODE_2 | BG0_ON | BG1_ON | BG2_ON | BG3_ON;
+            break;
+        case MODE_DRAWING:
+            // Drawing mode uses standard tiled mode
+            REG_DISPCNT = MODE_0 | BG0_ON | BG1_ON | BG2_ON | BG3_ON;
+            // Initialize drawing state when entering drawing mode
+            if (drawingMode) {
+                drawing_init();
+            }
+            break;
+    }
+}
 
 //
 
@@ -108,6 +180,7 @@ void init()
 	remap = FALSE;
 	parallax = FALSE;
 	frame_scroll_mode = FALSE;
+	drawingMode = FALSE;
 	frameCounter=0;
 	paused = FALSE;
 	vsync = TRUE;
@@ -170,10 +243,16 @@ int main()
 		/* 
 			UPDATE DRAW SECTION
 		*/
-		animation_update_screen_movement();
-		animation_update_remap();
-		animation_update_frame_scroll();
-		animation_update_palette();
+		if (!drawingMode) {
+			// Normal animation updates only when not in drawing mode
+			animation_update_screen_movement();
+			animation_update_remap();
+			animation_update_frame_scroll();
+			animation_update_palette();
+		} else {
+			// Drawing mode updates
+			drawing_update();
+		}
 		
 		// Game Link Cable command processing
 		gamelink_poll();

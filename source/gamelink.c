@@ -130,12 +130,8 @@ void gamelink_process_command(u8 command)
 			rotationMode = !rotationMode;
 			if (rotationMode) {
 				REG_DISPCNT = MODE_2 | BG0_ON | BG1_ON | BG2_ON | BG3_ON;
-				dmaCopy(mapsPointer[currentTiles], &MAP[28][0], MapsLen[currentTiles]);
-				dmaCopy(tilesPointer[currentTiles]+(rand()%(TilesLen[currentTiles])), &MAP[31][0], MapsLen[currentTiles]);
 			} else {
 				REG_DISPCNT = BG0_ON | BG1_ON | BG2_ON | BG3_ON;
-				init_map();
-				bglevel = 0;
 			}
 			break;
 			

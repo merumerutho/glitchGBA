@@ -97,7 +97,7 @@ DrawingSystem drawing = {
     .tile = {
         .selected_tile = 0,
         .active_layer = 0,
-        .rotation = TILE_ROT_0,
+        .rotation = TILE_NO_FLIP,
         .mirror_mode = MIRROR_NONE
     },
     .input = {

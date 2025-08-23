@@ -26,7 +26,7 @@ void drawing_init(void)
 	// Initialize tile state
 	drawing.tile.selected_tile = 0;
 	drawing.tile.active_layer = 0;
-	drawing.tile.rotation = TILE_ROT_0;
+	drawing.tile.rotation = TILE_NO_FLIP;
 	drawing.tile.mirror_mode = MIRROR_NONE;
 	
 	// Initialize input state
@@ -88,17 +88,10 @@ void drawing_place_tile(void)
 			return;
 	}
 	
-	// Apply rotation using hardware flip bits
-	u16 tile_entry = drawing.tile.selected_tile;
-	switch (drawing.tile.rotation) {
-		case TILE_ROT_0:
-			// No modification needed
-			break;
-		case TILE_ROT_180:
-			// Apply horizontal and vertical flip bits (bits 10 and 11)
-			tile_entry |= (1 << 10) | (1 << 11);
-			break;
-	}
+	// Apply flip bits using GBA hardware flip functionality
+	u16 tile_entry = drawing.tile.selected_tile |
+		((drawing.tile.rotation == TILE_FLIP_H || drawing.tile.rotation == TILE_FLIP_HV) << 10) |
+		((drawing.tile.rotation == TILE_FLIP_V || drawing.tile.rotation == TILE_FLIP_HV) << 11) ;
 	
 	// Place tile at primary cursor position
 	int map_pos = drawing.cursor.y * 32 + drawing.cursor.x;
@@ -262,8 +255,21 @@ void drawing_toggle_rotation(void)
 {
 	if (!drawing.enabled) return;
 	
-	// Toggle between 0° and 180° rotation
-	drawing.tile.rotation = (drawing.tile.rotation == TILE_ROT_0) ? TILE_ROT_180 : TILE_ROT_0;
+	// Cycle through flip modes: No Flip -> H Flip -> V Flip -> HV Flip -> No Flip
+	switch (drawing.tile.rotation) {
+		case TILE_NO_FLIP:
+			drawing.tile.rotation = TILE_FLIP_H;
+			break;
+		case TILE_FLIP_H:
+			drawing.tile.rotation = TILE_FLIP_V;
+			break;
+		case TILE_FLIP_V:
+			drawing.tile.rotation = TILE_FLIP_HV;
+			break;
+		case TILE_FLIP_HV:
+			drawing.tile.rotation = TILE_NO_FLIP;
+			break;
+	}
 }
 
 void drawing_cycle_mirror_mode(void)
@@ -528,14 +534,22 @@ void drawing_render_cursor(void)
 	// Create cursor tile based on blink state
 	u16 cursor_tile;
 	if (drawing.cursor.blink_counter < DRAW_CURSOR_BLINK_SPEED) {
-		// Show selected tile with current rotation applied
+		// Show selected tile with current flip mode applied
 		cursor_tile = drawing.tile.selected_tile;
 		switch (drawing.tile.rotation) {
-			case TILE_ROT_0:
+			case TILE_NO_FLIP:
 				// No modification needed
 				break;
-			case TILE_ROT_180:
-				// Apply horizontal and vertical flip bits
+			case TILE_FLIP_H:
+				// Apply horizontal flip bit (bit 10)
+				cursor_tile |= (1 << 10);
+				break;
+			case TILE_FLIP_V:
+				// Apply vertical flip bit (bit 11)
+				cursor_tile |= (1 << 11);
+				break;
+			case TILE_FLIP_HV:
+				// Apply both horizontal and vertical flip bits
 				cursor_tile |= (1 << 10) | (1 << 11);
 				break;
 		}

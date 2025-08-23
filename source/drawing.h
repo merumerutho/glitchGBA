@@ -12,10 +12,12 @@
 #define KEY_REPEAT_DELAY 15     // Initial delay before repeat starts (frames)
 #define KEY_REPEAT_RATE 4       // Repeat rate once started (frames between repeats)
 
-// Tile rotation modes
+// Tile flip modes using GBA hardware flip bits
 typedef enum {
-    TILE_ROT_0,     // Normal (0°)
-    TILE_ROT_180    // 180° rotation using hardware flips
+    TILE_NO_FLIP,   // No flipping (normal)
+    TILE_FLIP_H,    // Horizontal flip only 
+    TILE_FLIP_V,    // Vertical flip only
+    TILE_FLIP_HV    // Both horizontal and vertical flip
 } TileRotation;
 
 // Mirror modes for cursor

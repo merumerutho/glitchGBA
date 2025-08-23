@@ -12,11 +12,11 @@ extern bool rotationMode;
 
 void init_map(void)
 {
-	// Reset glitch on tileset
-	memcpy(MAP_LAYER0, mapsPointer[currentTiles], MapsLen[currentTiles]);
-	memcpy(MAP_LAYER1 + (rand()%0xFF), tilesPointer[0]+(rand()%(TilesLen[0]-MapsLen[0])), 0x10);
-	memcpy(MAP_LAYER2 + (rand()%0xFF), tilesPointer[0]+(rand()%(TilesLen[0]-MapsLen[0])), 0x10);
-	memcpy(MAP_LAYER3 + (rand()%0xFF), tilesPointer[0]+(rand()%(TilesLen[0]-MapsLen[0])), 0x10);
+	// Clear all map layers to empty (32x32 tiles = 1024 tiles per layer)
+	memset(MAP_LAYER0, 0, 32 * 32 * sizeof(u16));
+	memset(MAP_LAYER1, 0, 32 * 32 * sizeof(u16));
+	memset(MAP_LAYER2, 0, 32 * 32 * sizeof(u16));
+	memset(MAP_LAYER3, 0, 32 * 32 * sizeof(u16));
 }
 
 void init_tile(void)

@@ -153,7 +153,7 @@ static const KeyBinding key_bindings[] = {
     {0, KEY_UP, false, false, MODE_NORMAL, action_move_up, "Move up"},
     {0, KEY_DOWN, false, false, MODE_NORMAL, action_move_down, "Move down"},
     {0, KEY_R, false, false, MODE_NORMAL, action_tileset_next, "Next tileset"},
-    {0, KEY_L, false, false, MODE_NORMAL, action_tileset_prev, "Previous tileset"},
+    //{0, KEY_L, false, false, MODE_NORMAL, action_tileset_prev, "Previous tileset"},
     
     // Multi-key actions
     {KEY_A, KEY_B, false, false, MODE_NORMAL, action_stop_all_layers, "Stop all layers"},
@@ -165,8 +165,8 @@ static const KeyBinding key_bindings[] = {
     {KEY_R, KEY_RIGHT, false, false, MODE_NORMAL, action_toggle_frame_scroll, "Toggle frame scroll"},
     
     // Continuous actions
-    {KEY_START, KEY_L, true, false, MODE_NORMAL, action_decrement_tile_indices, "Decrement tile indices"},
-    {KEY_START, KEY_R, true, false, MODE_NORMAL, action_increment_tile_indices, "Increment tile indices"},
+    {KEY_START, KEY_L, true, true, 0, action_decrement_tile_indices, "Decrement tile indices"},
+    {KEY_START, KEY_R, true, true, 0, action_increment_tile_indices, "Increment tile indices"},
 
     // =========================================================================
     // ROTATION MODE BINDINGS

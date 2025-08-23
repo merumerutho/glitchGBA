@@ -294,9 +294,7 @@ void drawing_cycle_mirror_mode(void)
 }
 
 void drawing_increment_tiles(void)
-{
-	if (!drawing.enabled) return;
-	
+{	
 	// Get active layer pointer
 	u16 *layer_ptr;
 	switch (drawing.tile.active_layer) {
@@ -339,9 +337,7 @@ void drawing_increment_tiles(void)
 }
 
 void drawing_decrement_tiles(void)
-{
-	if (!drawing.enabled) return;
-	
+{	
 	// Get active layer pointer
 	u16 *layer_ptr;
 	switch (drawing.tile.active_layer) {

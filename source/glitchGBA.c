@@ -46,13 +46,7 @@ int moveRateY[NUM_LAYERS] = {0,0,0,0};   // Platform-adjusted Y rates
 int currentTiles = 0;  // Currently active tileset index
 int bglevel = 0;       // Currently selected background layer
 
-// Application modes
-typedef enum {
-    MODE_NORMAL,    // Standard glitch effects mode
-    MODE_ROTATION,  // Rotation/scaling mode
-    MODE_DRAWING    // Drawing mode
-} AppMode;
-
+// Application modes (defined in input.h)
 AppMode currentMode = MODE_NORMAL;  // Current application mode
 
 // Application state flags
@@ -274,10 +268,9 @@ int main()
 		
 		// ---
 		
-		// Handle input
+		// Handle input with new centralized system
 		input_update(&input);
-		input_handle_single_keys(&input);
-		input_handle_multi_keys(&input);
+		input_process(&input);
 		
 	} while( 1 );
 }

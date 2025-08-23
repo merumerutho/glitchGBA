@@ -81,6 +81,8 @@ void drawing_prev_tile(void);
 void drawing_next_layer(void);
 void drawing_toggle_rotation(void);
 void drawing_cycle_mirror_mode(void);
+void drawing_increment_tiles(void);
+void drawing_decrement_tiles(void);
 void drawing_handle_continuous_input(int keys_held);
 void drawing_render_cursor(void);
 

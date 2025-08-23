@@ -293,6 +293,96 @@ void drawing_cycle_mirror_mode(void)
 	}
 }
 
+void drawing_increment_tiles(void)
+{
+	if (!drawing.enabled) return;
+	
+	// Get active layer pointer
+	u16 *layer_ptr;
+	switch (drawing.tile.active_layer) {
+		case 0:
+			layer_ptr = (u16*)MAP_LAYER0;
+			break;
+		case 1:
+			layer_ptr = (u16*)MAP_LAYER1;
+			break;
+		case 2:
+			layer_ptr = (u16*)MAP_LAYER2;
+			break;
+		case 3:
+			layer_ptr = (u16*)MAP_LAYER3;
+			break;
+		default:
+			return;
+	}
+	
+	// Get the number of tiles in current tileset for bounds checking
+	int max_tiles = TilesLen[currentTiles] / 64; // Each tile is 64 bytes (8x8x8bit)
+	
+	// Scan through the entire layer (32x32 tiles = 1024 tiles)
+	for (int i = 0; i < 32 * 32; i++) {
+		u16 tile_data = layer_ptr[i];
+		
+		// Extract tile index (lower 10 bits) and flip bits (bits 10-11)
+		u16 tile_index = tile_data & 0x3FF;  // Mask to get tile index only
+		u16 flip_bits = tile_data & 0xFC00;  // Mask to get flip/palette bits
+		
+		// Skip empty background tiles (index 0)
+		if (tile_index == 0) continue;
+		
+		// Increment tile index with wrapping
+		tile_index = (tile_index + 1 >= max_tiles) ? 1 : tile_index + 1; // Skip 0, wrap to 1
+		
+		// Reconstruct tile data with new index and preserve flip bits
+		layer_ptr[i] = tile_index | flip_bits;
+	}
+}
+
+void drawing_decrement_tiles(void)
+{
+	if (!drawing.enabled) return;
+	
+	// Get active layer pointer
+	u16 *layer_ptr;
+	switch (drawing.tile.active_layer) {
+		case 0:
+			layer_ptr = (u16*)MAP_LAYER0;
+			break;
+		case 1:
+			layer_ptr = (u16*)MAP_LAYER1;
+			break;
+		case 2:
+			layer_ptr = (u16*)MAP_LAYER2;
+			break;
+		case 3:
+			layer_ptr = (u16*)MAP_LAYER3;
+			break;
+		default:
+			return;
+	}
+	
+	// Get the number of tiles in current tileset for bounds checking
+	int max_tiles = TilesLen[currentTiles] / 64; // Each tile is 64 bytes (8x8x8bit)
+	
+	// Scan through the entire layer (32x32 tiles = 1024 tiles)
+	for (int i = 0; i < 32 * 32; i++) {
+		u16 tile_data = layer_ptr[i];
+		
+		// Extract tile index (lower 10 bits) and flip bits (bits 10-11)
+		u16 tile_index = tile_data & 0x3FF;  // Mask to get tile index only
+		u16 flip_bits = tile_data & 0xFC00;  // Mask to get flip/palette bits
+		
+		// Skip empty background tiles (index 0)
+		if (tile_index == 0) continue;
+		
+		// Decrement tile index with wrapping
+		tile_index = (tile_index <= 1) ? (max_tiles - 1) : tile_index - 1; // Skip 0, wrap to max
+		
+		// Reconstruct tile data with new index and preserve flip bits
+		layer_ptr[i] = tile_index | flip_bits;
+	}
+}
+
 void drawing_get_mirror_positions(int x, int y, int *mirror_x, int *mirror_y, MirrorMode mode)
 {
 	// Calculate center of the mapping space (30x20 tiles)
@@ -367,6 +457,13 @@ void drawing_handle_continuous_input(int keys_held)
 		drawing_prev_tile();
 	} else if ((keys_held & KEY_R) && !(keys_held & KEY_L)) {
 		drawing_next_tile();
+	}
+	
+	// Handle continuous tile index modification (START+L/R)
+	if ((keys_held & KEY_START) && (keys_held & KEY_L) && !(keys_held & KEY_R)) {
+		drawing_decrement_tiles();
+	} else if ((keys_held & KEY_START) && (keys_held & KEY_R) && !(keys_held & KEY_L)) {
+		drawing_increment_tiles();
 	}
 	
 	// Handle continuous placement/movement (A + directions)

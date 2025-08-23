@@ -258,6 +258,10 @@ int main()
 			drawing_update();
 		}
 		
+		/*
+		
+		TODO: 
+		
 		// Game Link Cable command processing
 		gamelink_poll();
 		while (gamelink_has_command())
@@ -265,6 +269,7 @@ int main()
 			u8 command = gamelink_get_command();
 			gamelink_process_command(command);
 		}
+		*/
 		
 		// ---
 		
